@@ -1,0 +1,34 @@
+{% include 'ats_system.jinja2' %}
+
+Przeanalizuj ogłoszenie pod kątem dopasowania CV (ATS + hiring manager).
+
+Dozwolone narzędzia/kompetencje z profilu kandydata (używaj TYLKO tych lub ogólników):
+{{ allowed_tools_sample }}
+
+Zwróć TYLKO JSON:
+{
+  "role_title": "dokładny tytuł roli z ogłoszenia",
+  "must_have_keywords": ["5-12 wymaganych fraz z ogłoszenia"],
+  "nice_to_have_keywords": ["3-8 opcjonalnych"],
+  "tools_explicit": ["narzędzia z ogłoszenia: JIRA, Confluence, ..."],
+  "soft_skills": ["3-6 umiejętności miękkich z ogłoszenia"],
+  "normalized_skills": [{"posting_term": "fraza z ogłoszenia", "candidate_term": "odpowiednik z profilu"}],
+  "keyword_placement_hints": {"summary": ["2-3 frazy do podsumowania"], "top_bullets": ["2-3 frazy do bulletów"]},
+  "priority_themes": ["3-5 tematów do podkreślenia w CV"],
+  "emphasis_jobs": ["2-4 tytuły stanowisk z historii kandydata najbardziej istotne dla tej roli"],
+  "profile_angle": "1-2 zdania: jaki kąt profilu wyeksponować",
+  "avoid_framing": ["czego unikać w CV"]
+}
+
+Reguły:
+- Keywords muszą pochodzić z ogłoszenia (nie wymyślaj).
+- must_have_keywords MUSI zawierać narzędzia z sekcji Technologies (np. JIRA, Confluence) oraz metodologie z wymagań (Agile, Scrum, Waterfall, project lifecycle).
+- normalized_skills: mapuj terminy ogłoszenia na terminy z profilu (bez fabrykacji); candidate_term musi występować w profilu.
+- keyword_placement_hints.summary: tylko frazy PM z must_have/tools — bez wymagań językowych.
+- Preferuj frazy wielowyrazowe (ERP, project management, stakeholder engagement).
+- Język keywords: taki sam jak ogłoszenie.
+
+Rola docelowa: {{ role }} @ {{ company }}
+
+Ogłoszenie:
+{{ job_posting }}

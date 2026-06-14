@@ -1,0 +1,13 @@
+[Unit]
+Description=BC-250 GPU LLM work profile (40 CU + governor 1000-1500 MHz)
+Before=llama-server-bielik.service
+DefaultDependencies=no
+Conflicts=bc250-gpu-idle.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/bc250-gpu-performance.sh
+
+[Install]
+WantedBy=multi-user.target

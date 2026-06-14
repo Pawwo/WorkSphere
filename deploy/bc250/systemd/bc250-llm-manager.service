@@ -1,0 +1,12 @@
+[Unit]
+Description=BC-250 LLM power manager (wake/sleep on :8099)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/bin/bc250-llm-manager.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

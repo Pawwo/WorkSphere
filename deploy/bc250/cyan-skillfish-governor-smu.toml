@@ -1,0 +1,52 @@
+# LLM profile: scale to 1500 MHz / ~900 mV under GPU load; idle down to 500–1000 MHz.
+# Installed to /etc/cyan-skillfish-governor-smu/config.toml
+
+[timing.intervals]
+sample = 250
+adjust = 100_000
+
+[gpu-usage]
+fix-metrics = true
+method = "busy-flag"
+flush-every = 10
+
+[gpu]
+set-method = "smu"
+
+[dbus]
+enabled = true
+
+[frequency-range]
+min = 500
+max = 1500
+
+[timing.ramp-rates]
+normal = 2
+burst = 80
+
+[timing]
+burst-samples = 30
+down-events = 5
+
+[frequency-thresholds]
+adjust = 10
+
+[load-target]
+upper = 0.80
+lower = 0.60
+
+[temperature]
+throttling = 85
+throttling_recovery = 75
+
+[[safe-points]]
+frequency = 500
+voltage = 700
+
+[[safe-points]]
+frequency = 1000
+voltage = 800
+
+[[safe-points]]
+frequency = 1500
+voltage = 900

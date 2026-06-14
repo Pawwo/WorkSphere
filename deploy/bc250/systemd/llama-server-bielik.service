@@ -1,0 +1,39 @@
+[Unit]
+Description=llama-server Bielik-Minitron-7B-v3.0-Instruct Q4_K_M on AMD BC-250 Vulkan
+After=network-online.target bc250-cu-live-manager.service cyan-skillfish-governor-smu.service
+Wants=network-online.target bc250-cu-live-manager.service cyan-skillfish-governor-smu.service
+Conflicts=llama-server-bielik-cpu.service llama-server-bielik-11b.service llama-server-minitron.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root
+Environment=LD_LIBRARY_PATH=/usr/local/lib
+Environment=AMD_VULKAN_ICD=RADV
+Environment=VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/radeon_icd.x86_64.json
+Environment=RADV_DEBUG=nohiz
+Environment=GGML_VK_FORCE_MAX_ALLOCATION_SIZE=2000000000
+ExecStartPre=/usr/local/bin/bc250-gpu-performance.sh
+ExecStart=/usr/local/bin/llama-server \
+  -m /root/models/bielik/minitron-Bielik-7B-v3.0-Instruct-GGUF.Q4_K_M.gguf \
+  -ngl 999 \
+  -c 4096 \
+  -np 1 \
+  --threads 6 \
+  --batch-size 128 \
+  --ubatch-size 64 \
+  --repeat-penalty 1.1 \
+  --fit on \
+  --fit-target 512 \
+  --host 0.0.0.0 \
+  --port 8006
+ExecStartPost=/bin/sh -c "date +%s > /var/run/bc250-llm.last_activity"
+ExecStopPost=/usr/local/bin/bc250-gpu-idle.sh
+Restart=on-failure
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=llama-server-bielik
+
+[Install]
+WantedBy=multi-user.target

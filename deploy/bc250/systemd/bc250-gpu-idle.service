@@ -1,0 +1,13 @@
+[Unit]
+Description=BC-250 GPU idle profile (minimal clocks until LLM wake)
+Before=llama-server-bielik.service
+DefaultDependencies=no
+Conflicts=bc250-gpu-performance.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/bc250-gpu-idle.sh
+
+[Install]
+WantedBy=multi-user.target

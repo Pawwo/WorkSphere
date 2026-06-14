@@ -1,0 +1,27 @@
+Przeanalizuj poniższe CV i zwróć JSON z polami:
+{
+  "identity": {
+    "full_name": "", "location": "", "phone": "", "email": "",
+    "linkedin": "", "github": "", "languages": "",
+    "employment_status": "", "constraints": ""
+  },
+  "education": [{"degree": "", "field": "", "institution": "", "years": "", "thesis": "", "topics": ""}],
+  "experience": [{"title": "", "company": "", "start": "", "end": "", "location": "", "bullets": [], "technologies": ""}],
+  "skills": {"programming": "", "ml": "", "domain": "", "tools": "", "other": ""},
+  "projects": [],
+  "publications": [],
+  "awards": [],
+  "certifications": []
+}
+
+Zasady:
+- employment_status: np. "Otwarty na oferty", "Aktywnie szukam" — z CV lub domyślnie "Aktywnie szukam pracy"
+- constraints: preferencje lokalizacji, hybrid/remote, dojazd — jeśli są w CV
+- other (skills): kompetencje miękkie, zarządzanie, metodyki — poza programming/ml/domain/tools
+- bullets: max 4 najważniejsze osiągnięcia na stanowisko
+- Wypisz WSZYSTKIE stanowiska z sekcji doświadczenia
+
+Zwróć TYLKO poprawny JSON, bez komentarzy.
+
+CV:
+{{ cv_text }}

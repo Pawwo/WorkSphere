@@ -1,0 +1,17 @@
+# Portal search benchmark (2026-06-12, post listing-only fix)
+
+## praca.pl listing-only
+- query: dyrektor, limit 20 → 7 results in ~0.9s
+- query: COO warszawa → 0 results in ~0.7s (empty slug page, no timeout)
+
+## Mini-batch validation (scripts/validate_praca_batch.py)
+- 8 executive queries, is_batch=true, listing-only
+- timeouts: 0/8 (baseline task 12358880: 61/64)
+- wall time: 5.5s (baseline: ~90s × 61 ≈ 91 min lost to praca.pl timeouts)
+
+## Comparison vs task 12358880
+| Metric | Before | After (validated) |
+|--------|--------|-------------------|
+| praca-pl TIMEOUT / 8 | ~8 (90s each) | 0 |
+| praca-pl time / query | ~90s | ~0.7s |
+| Full batch 64 | not re-run (manual) | est. scrape -30 min |

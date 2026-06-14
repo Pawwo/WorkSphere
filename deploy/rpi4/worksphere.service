@@ -1,0 +1,18 @@
+[Unit]
+Description=WorkSphere job search assistant
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=admin
+Group=admin
+WorkingDirectory=/home/admin/worksphere
+EnvironmentFile=/home/admin/worksphere/.env
+Environment=PATH=/home/admin/.bun/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/admin/worksphere/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8080
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

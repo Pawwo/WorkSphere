@@ -1,0 +1,59 @@
+:root {
+  --odoo-primary: #714b67;
+  --odoo-primary-dark: #5b3d52;
+  --odoo-primary-light: #8f6a84;
+  --odoo-accent: #00a09d;
+  --odoo-bg: #f0f0f0;
+  --odoo-sidebar-w: 220px;
+  --odoo-topbar-h: 46px;
+  --odoo-border: #d8dadd;
+  --odoo-text: #212529;
+  --odoo-muted: #6c757d;
+  --odoo-card-bg: #fff;
+  --odoo-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --odoo-radius: 4px;
+  --odoo-success: #198754;
+  --odoo-warning: #fd7e14;
+  --odoo-danger: #dc3545;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --font-sm: 12px;
+  --font-base: 14px;
+  --font-lg: 16px;
+  --breakpoint-md: 991px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  color: var(--odoo-text);
+  background: var(--odoo-bg);
+}
+
+a {
+  color: var(--odoo-accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+code {
+  background: #f4f4f4;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="UTF-8">
+    <title>CV - {{ identity.name }}</title>
+    <style>{{ css }}</style>
+</head>
+<body>
+
+<header>
+    <h1>{{ identity.name }}</h1>
+    <p class="title">{{ headline }}</p>
+    <div class="contact-info">{{ contact_html }}</div>
+</header>
+
+<section id="summary">
+    <h2>{{ labels.summary }}</h2>
+    <p>{{ profile_statement }}</p>
+</section>
+
+{% if skills %}
+<section id="skills">
+    <h2>{{ labels.skills }}</h2>
+    <ul class="skills-list">
+        {% for skill in skills %}
+        <li><strong>{{ skill.category }}:</strong> {{ skill.detail }}</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{% if jobs %}
+<section id="experience">
+    <h2>{{ labels.experience }}</h2>
+    {% for job in jobs %}
+    <article>
+        <h3>{{ job.title }}</h3>
+        <p class="company-date">{{ job.meta }}</p>
+        {% if job.bullets %}
+        <ul>
+            {% for bullet in job.bullets %}
+            <li>{{ bullet | safe }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </article>
+    {% endfor %}
+</section>
+{% endif %}
+
+{% if education %}
+<section id="education">
+    <h2>{{ labels.education }}</h2>
+    {% for ed in education %}
+    <p>
+        <strong>{{ ed.degree }}</strong>{% if ed.detail %}<br>{{ ed.detail }}{% endif %}<br>
+        {{ ed.meta }}
+    </p>
+    {% endfor %}
+</section>
+{% endif %}
+
+{% if certifications %}
+<section id="certifications">
+    <h2>{{ labels.certifications }}</h2>
+    <ul>
+        {% for cert in certifications %}
+        <li>{{ cert }}</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{% if publications %}
+<section id="publications">
+    <h2>{{ labels.publications }}</h2>
+    <ul>
+        {% for pub in publications %}
+        <li>{{ pub }}</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{% if awards %}
+<section id="awards">
+    <h2>{{ labels.awards }}</h2>
+    <ul>
+        {% for award in awards %}
+        <li><strong>{{ award }}</strong></li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{% if languages_line %}
+<section id="languages">
+    <h2>{{ labels.languages }}</h2>
+    <p>{{ languages_line }}</p>
+</section>
+{% endif %}
+
+{% if references_line %}
+<section id="references">
+    <h2>{{ labels.references }}</h2>
+    <p>{{ references_line }}</p>
+</section>
+{% endif %}
+
+</body>
+</html>

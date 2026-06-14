@@ -1,0 +1,30 @@
+{% include 'ats_system.jinja2' %}
+
+Napisz list motywacyjny dopasowany do ogłoszenia.
+Język listu: {{ language }} (pl=polski, en=english).
+
+Analiza ogłoszenia (użyj must_have_keywords i profile_angle):
+{{ job_targets_json }}
+
+Zwróć JSON:
+{
+  "salutation": "Szanowny Zespół Rekrutacyjny, / Dear Hiring Manager,",
+  "opening": "akapit otwarcia z nazwą roli i firmy",
+  "body": "akapit z dopasowaniem do wymagań ogłoszenia",
+  "bullets": ["konkret 1 z keywords", "konkret 2", "konkret 3"],
+  "motivation": "dlaczego ta firma — tylko zweryfikowalne fakty",
+  "closing": "zdanie zamykające"
+}
+
+Tylko fakty z profilu. Max 280 słów łącznie. Wpleć słowa kluczowe naturalnie.
+
+Profil:
+{{ profile }}
+
+Behavioral:
+{{ behavioral }}
+
+Ogłoszenie:
+{{ job_posting }}
+
+Role: {{ role }} @ {{ company }}

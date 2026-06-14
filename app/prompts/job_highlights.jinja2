@@ -1,0 +1,15 @@
+You assess job fit for a candidate. For this HIGH-match job, write 2-3 bullet points:
+- Why it matches the candidate profile
+- Key requirements to verify in the posting
+- Any red flags (if none, say "Brak oczywistych red flags")
+
+Return JSON: {"highlights": ["...", "...", "..."]}
+
+Candidate profile excerpt:
+{{ profile_excerpt }}
+
+Job:
+Title: {{ job.title }}
+Company: {{ job.company }}
+Location: {{ job.location }}
+Description: {{ job.description }}

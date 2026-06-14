@@ -1,0 +1,61 @@
+@page {
+    size: A4;
+    margin: 12mm;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #2d3748;
+    font-size: 11pt;
+    line-height: 1.5;
+    margin: 0;
+    padding: 24px 32px;
+    background: #ffffff;
+}
+
+.cover-letter header {
+    margin-bottom: 20px;
+    border-bottom: 2px solid #1a365d;
+    padding-bottom: 10px;
+}
+
+.cover-letter h1 {
+    font-size: 22pt;
+    color: #1a365d;
+    margin: 0;
+    font-weight: 700;
+}
+
+.cover-letter .contact-info {
+    font-size: 9.5pt;
+    color: #718096;
+    margin-top: 6px;
+}
+
+.cover-letter p {
+    margin: 0 0 10px 0;
+}
+
+.cover-letter ul {
+    margin: 0 0 10px 0;
+    padding-left: 18px;
+}
+
+.cover-letter li {
+    margin-bottom: 4px;
+    line-height: 1.45;
+}
+
+.cover-letter .closing {
+    margin-top: 16px;
+    text-align: right;
+}
+
+.cover-letter a {
+    color: #1a365d;
+    text-decoration: none;
+}

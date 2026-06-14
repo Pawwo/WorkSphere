@@ -1,0 +1,18 @@
+{
+  "name": "indeed-pl-cli",
+  "version": "1.0.0",
+  "description": "CLI for searching jobs on Indeed Poland",
+  "type": "module",
+  "main": "src/cli.ts",
+  "scripts": {
+    "start": "bun run src/cli.ts",
+    "test": "bun test --timeout 60000",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bunli/core": "0.9.1",
+    "playwright": "^1.49.0",
+    "scraper-shared": "workspace:*",
+    "zod": "^3.25.76"
+  }
+}

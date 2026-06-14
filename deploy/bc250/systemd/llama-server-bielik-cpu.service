@@ -1,0 +1,31 @@
+[Unit]
+Description=llama-server Bielik-Minitron-7B Q4_K_M CPU fallback (Vulkan broken)
+After=network-online.target
+Wants=network-online.target
+Conflicts=llama-server-bielik.service llama-server-bielik-11b.service llama-server-minitron.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root
+Environment=LD_LIBRARY_PATH=/usr/local/lib
+ExecStart=/usr/local/bin/llama-server \
+  -m /root/models/bielik/minitron-Bielik-7B-v3.0-Instruct-GGUF.Q4_K_M.gguf \
+  -ngl 0 \
+  -c 8192 \
+  -np 1 \
+  --threads 6 \
+  --batch-size 64 \
+  --ubatch-size 32 \
+  --repeat-penalty 1.1 \
+  --host 0.0.0.0 \
+  --port 8006
+ExecStartPost=/bin/sh -c "date +%s > /var/run/bc250-llm.last_activity"
+Restart=on-failure
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=llama-server-bielik-cpu
+
+[Install]
+WantedBy=multi-user.target

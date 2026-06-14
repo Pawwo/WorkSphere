@@ -1,0 +1,22 @@
+# SearXNG for WorkSphere (JSON API required)
+use_default_settings: true
+
+server:
+  bind_address: "0.0.0.0"
+  port: 8080
+  secret_key: "worksphere-searx-lan-194-change-in-prod"
+  limiter: false
+  image_proxy: false
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  formats:
+    - html
+    - json
+
+general:
+  instance_name: "searxng-worksphere"
+
+ui:
+  default_locale: "pl"

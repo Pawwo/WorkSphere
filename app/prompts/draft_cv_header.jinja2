@@ -1,0 +1,35 @@
+{% include 'ats_system.jinja2' %}
+
+Tailor the CV HEADER only (no experience). Output language: **{{ cv_language_name }}** only.
+
+Targets: {{ job_targets_json }}
+Role: {{ role }} @ {{ company }}
+
+Dozwolone z profilu: {{ allowed_tools_sample }}
+
+## Baseline competencies (keep structure — do NOT replace with keywords)
+{{ competencies_baseline }}
+
+## Master summary (source facts)
+{{ master_summary }}
+
+## Profile excerpt
+{{ profile }}
+
+## Rules
+- profile_statement: 4-6 lines, lead with fit for {{ role }} at {{ company }}, achievements not duties
+- For PM/Program Manager roles: include ≥3 phrases from must_have_keywords or keyword_placement_hints.summary
+- Include category **Project & Program Management:** in competencies when role is PM/Program Manager
+- Weave ATS keywords naturally (from targets) — only if supported by profile
+- Avoid vague openers ("passion for innovation") without PM keywords from targets
+- competency_keywords: 1-2 phrases to weave into EXISTING competency categories
+- NEVER use company/city/job title alone as competency category
+
+Return ONLY JSON:
+{
+  "profile_statement": "...",
+  "competency_keywords": ["phrase from posting matched to profile"],
+  "competencies": ["Executive Leadership: COO leadership, change management, KPI"],
+  "tailoring_notes": ["1-2 short decisions"]
+}
+Each competencies entry MUST be a single string "Category: comma-separated skills" — NOT a JSON object.

@@ -1,0 +1,11 @@
+Przeanalizuj fragment ogłoszenia o pracę i oceń wymaganie poziomu angielskiego.
+
+Zasady (STRICT — pomijamy tylko wyraźne wymagania wysokie):
+- TAK (skip=true): fluent + English/angielski, excellent + English/angielski, C1, C1+, (C1), C1/C2, "minimum C1", "Angielski C1", "poziom C1" w kontekście angielskiego
+- NIE (skip=false): samo B2, B2/C1, min. B2/C1, "advanced English" bez C1/fluent/excellent, "very good English" bez C1, ogólne "znajomość angielskiego" bez poziomu C1+
+
+Ogłoszenie:
+{{ posting }}
+
+Odpowiedz WYŁĄCZNIE JSON:
+{"skip": true|false, "token": "english_fluent|english_excellent|english_c1|english_c1_plus|none", "evidence": "cytat max 80 znaków"}

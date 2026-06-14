@@ -1,0 +1,17 @@
+{
+  "name": "job-scrapers-workspace",
+  "private": true,
+  "workspaces": [
+    "scraper-shared",
+    "pracuj-search/cli",
+    "praca-pl-search/cli",
+    "justjoin-search/cli",
+    "nofluffjobs-search/cli",
+    "theprotocol-search/cli",
+    "rocketjobs-search/cli",
+    "linkedin-pl-search/cli"
+  ],
+  "scripts": {
+    "install:all": "bun install --production"
+  }
+}

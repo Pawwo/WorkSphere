@@ -1,0 +1,15 @@
+Przeanalizuj fragment ogłoszenia o pracę i wypisz wymagania poziomu języków (CEFR).
+
+Zasady:
+- Zwróć tylko języki z WYRAŹNYM wymaganiem poziomu (fluent, excellent, C1, C1+, C2, native, B2, B1…)
+- fluent / excellent / "very good … minimum C1" → poziom C1; C1+ → C2
+- B2/C1 lub min. B2/C1 → poziom B2 (nie C1)
+- Samo "advanced English" bez C1/fluent → B2
+- Ogólne "znajomość angielskiego" bez poziomu → pomiń
+- language: english, polish, german, french, spanish, italian, ukrainian, other
+
+Ogłoszenie:
+{{ posting }}
+
+Odpowiedz WYŁĄCZNIE JSON (tablica, może być pusta):
+[{"language": "english", "level": "C1", "evidence": "cytat max 80 znaków"}]

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+    <meta charset="UTF-8">
+    <title>Cover Letter - {{ identity.name }}</title>
+    <style>{{ css }}</style>
+</head>
+<body class="cover-letter">
+
+<header>
+    <h1>{{ identity.name }}</h1>
+    <div class="contact-info">{{ contact_html }}</div>
+</header>
+
+<p>{{ salutation }}</p>
+<p>{{ opening }}</p>
+<p>{{ body }}</p>
+
+{% if bullets %}
+<ul>
+    {% for bullet in bullets %}
+    <li>{{ bullet }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if motivation %}<p>{{ motivation }}</p>{% endif %}
+<p>{{ closing }}</p>
+
+<div class="closing">
+    <p>Kind regards,<br><strong>{{ identity.name }}</strong></p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+[Unit]
+Description=BC-250 LLM idle check (hybrid power)
+
+[Service]
+Type=oneshot
+Environment=BC250_LLM_IDLE_MINUTES=50
+ExecStart=/usr/local/bin/bc250-llm-idle-check.sh
