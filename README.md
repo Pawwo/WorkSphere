@@ -1,118 +1,154 @@
 # WorkSphere
 
-Samodzielna aplikacja webowa do wyszukiwania pracy i przygotowywania aplikacji — **bez Claude Code**.
+Samodzielna aplikacja webowa do wyszukiwania ofert pracy w Polsce, triażu inboxu i przygotowywania aplikacji (CV, list motywacyjny, ocena dopasowania).
 
-- **LLM:** Bielik-Minitron-7B Q4_K_M (`llama-server` na `127.0.0.1:8006`)
-- **WebSearch:** SearXNG (`127.0.0.1:8888`)
-- **Scrapery:** 8 polskich portali (Bun CLI z `.agents/skills/`)
+## Funkcje
+
+- **Scraping** — 8 polskich portali (Pracuj, Praca.pl, JustJoin, NoFluffJobs, TheProtocol, RocketJobs, LinkedIn PL, Indeed PL)
+- **Inbox & triage** — automatyczny fit, języki, widełki, kolejka apply
+- **Apply pipeline** — evaluate → draft CV → review → PDF (HTML + Playwright)
+- **Profil** — wizard setup, import CV, dokumenty, search queries
+- **Narzędzia** — expand kompetencji, upskill, tracker aplikacji
 
 ## Wymagania
 
-- Python 3.10+
-- [Bun](https://bun.sh)
-- `curl`
-- Na `127.0.0.1`: llama-server (Minitron chat :8006); SearXNG na `127.0.0.1:8888`
-- Opcjonalnie: LaTeX (`lualatex`, `xelatex`) — faza apply
+| Komponent | Uwagi |
+|-----------|--------|
+| **Linux** | x86_64 lub aarch64/arm64 |
+| **Python** | 3.10+ |
+| **[Bun](https://bun.sh)** | scrapery portalowe (instalator doinstaluje) |
+| **LLM** | endpoint **OpenAI-compatible** (`/v1/chat/completions`) |
+| **SearXNG** | wyszukiwanie web (opcjonalnie Docker — instalator uruchamia) |
+| **Docker** | tylko dla SearXNG (opcjonalnie, ręcznie) |
 
-## Instalacja
+### LLM
+
+Aplikacja jest **dopasowana do polskiego modelu [Bielik](https://huggingface.co/speakleash)** uruchomionego lokalnie przez **llama.cpp** (`llama-server`). Domyślna konfiguracja zakłada GGUF w rodzinie Minitron/Bielik-7B.
+
+Działa też z **dowolnym API zgodnym z OpenAI**: Ollama, vLLM, LocalAI, OpenRouter, itp. Wystarczy ustawić `LLM_BASE_URL` i `LLM_MODEL` w `.env` lub `config.yaml`.
+
+## Szybka instalacja (Linux)
 
 ```bash
+git clone https://github.com/Pawwo/WorkSphere.git
 cd WorkSphere
-
-# Środowisko Python
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# Scrapery portalowe (Bun workspace — jeden install dla 8 portali)
-./install-skills.sh
-# równoważnie: cd .agents/skills && bun install
-
-# Konfiguracja
-cp .env.example .env
-# edytuj .env jeśli potrzeba
+chmod +x install.sh
+./install.sh
 ```
 
-## Uruchomienie
+Skrypt `install.sh`:
+
+- tworzy venv i instaluje zależności Python,
+- instaluje Bun i scrapery (`.agents/skills/`),
+- instaluje Playwright/Chromium do generowania PDF z HTML (`CV_RENDERER=html`),
+- tworzy `.env` z lokalnymi adresami,
+- uruchamia **SearXNG** w Dockerze, jeśli Docker jest dostępny.
+
+### Uruchomienie
 
 ```bash
 source .venv/bin/activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
 
-Otwórz: http://localhost:8080/dashboard
+Otwórz: **http://localhost:8080/dashboard**
 
-Pełny przewodnik: [SETUP.md](SETUP.md)
+Szczegóły konfiguracji LLM, SearXNG i pierwsze kroki: **[SETUP.md](SETUP.md)**
 
-## Strony web
+## Konfiguracja
+
+Skopiuj i edytuj środowisko:
+
+```bash
+cp .env.example .env
+```
+
+| Zmienna | Opis |
+|---------|------|
+| `LLM_BASE_URL` | np. `http://127.0.0.1:8006/v1` (llama-server) lub URL OpenRouter |
+| `LLM_MODEL` | nazwa modelu na serwerze |
+| `SEARXNG_BASE_URL` | np. `http://127.0.0.1:8888` |
+| `CV_RENDERER` | `html` (domyślne, Playwright) lub `latex` (legacy) |
+| `DATA_DIR` | katalog danych (`./data`) |
+
+Większość ustawień scrape/ATS jest w **`config.yaml`**.
+
+### SearXNG (ręcznie)
+
+```bash
+cd deploy/searxng
+docker compose up -d
+curl -s "http://127.0.0.1:8888/search?q=test&format=json" | head
+```
+
+### Przykład: lokalny LLM (llama-server)
+
+```bash
+llama-server -m /path/to/bielik.gguf -c 4096 --host 0.0.0.0 --port 8006
+```
+
+W `.env`: `LLM_BASE_URL=http://127.0.0.1:8006/v1`
+
+## Strony
 
 | URL | Opis |
 |-----|------|
 | `/dashboard` | Status systemu, profil, ostatnie scrape |
-| `/setup` | Wizard profilu (9 sekcji) |
-| `/scrape` | Wyszukiwanie ofert z SSE progress |
-| `/apply` | CV + list motywacyjny |
+| `/setup` | Wizard profilu |
+| `/inbox` | Triage ofert |
+| `/scrape` | Wyszukiwanie z postępem SSE |
+| `/apply` | Pipeline aplikacji |
+| `/tracker` | Śledzenie wysłanych aplikacji |
 | `/tools` | Expand, Upskill, Reset |
 
-## API
+## API (skrót)
 
 | Endpoint | Opis |
 |----------|------|
-| `GET /api/dashboard` | Podsumowanie stanu aplikacji |
-| `GET /health` | Status Bielik + SearXNG + scrapers |
-| `POST /api/scrape/async` | Scrape w tle → `{task_id}` |
-| `GET /api/tasks/{id}` | Status zadania |
-| `GET /api/tasks/{id}/stream` | SSE progress |
-| `POST /api/documents/upload` | Upload do `data/documents/` |
-| `GET /setup` | Wizard setup profilu (HTML) |
-| `GET /api/setup/status` | Status uzupełnienia profilu |
-| `GET /api/setup/wizard` | Schema 9 sekcji wizarda |
-| `POST /api/setup/wizard/section` | Zapis sekcji `{section, data}` |
-| `POST /api/setup/cv` | Import CV (Path B) `{cv_text}` |
-| `POST /api/setup/finalize` | Generuj pliki profilu |
-| `GET /api/profile/{file}` | Odczyt pliku profilu |
-| `POST /api/apply` | Apply: evaluate lub pełny pipeline `{url\|text, proceed, compile_pdf}` |
-| `GET /api/apply/runs` | Historia aplikacji |
-| `GET /api/files/cv/{name}` | Pobierz CV .tex/.pdf |
-| `GET /api/files/cover/{name}` | Pobierz list .tex/.pdf |
-| `POST /api/expand/preview` | Skan kompetencji z documents/GitHub |
-| `POST /api/expand/apply` | Dodaj kompetencje do profilu |
-| `POST /api/upskill` | Raport luk `{mode: aggregate\|targeted}` |
-| `POST /api/reset/preview` | Podgląd resetu `{scope}` |
-| `POST /api/reset` | Reset z potwierdzeniem `RESET` |
-| `POST /api/scrape` | Wyszukiwanie ofert |
+| `GET /health` | LLM + SearXNG + scrapers |
+| `POST /api/scrape/async` | Scrape w tle |
+| `POST /api/apply` | Evaluate / pełny pipeline |
+| `GET /api/inbox` | Lista inbox |
 
-Przykład scrape:
+Pełna lista endpointów i przykłady `curl`: [SETUP.md](SETUP.md).
 
-```bash
-curl -X POST http://localhost:8080/api/scrape \
-  -H "Content-Type: application/json" \
-  -d '{"query":"python developer warszawa","days":14,"limit":5}'
-```
-
-## Struktura
+## Struktura repozytorium
 
 ```
 WorkSphere/
-├── app/                 # FastAPI backend
-├── .agents/skills/      # Bun workspace: 8 portal CLIs + scraper-shared
-├── data/profile/        # Profil kandydata (markdown)
-├── cv/                  # Szablony LaTeX CV
-├── cover_letters/       # Szablony listów
-├── config.yaml
-└── install-skills.sh
+├── app/                 # FastAPI + UI
+├── .agents/skills/      # Bun workspace — 8 portali
+├── data/                # profil, oferty, SQLite (gitignore na dane osobiste)
+├── deploy/searxng/      # Docker Compose SearXNG
+├── config.yaml          # scrape, LLM, ATS
+├── install.sh           # instalator Linux
+└── install-skills.sh    # tylko scrapery
 ```
 
-## Roadmap
+## Wydajność — przykładowa konfiguracja
 
-- [x] Faza 1: skeleton, health, scrape
-- [x] Faza 2: setup wizard (Path B/C), prompty Jinja2
-- [x] Faza 3: apply pipeline (evaluate → draft → reviewer → LaTeX)
-- [x] Faza 4: expand, upskill, reset
-- [x] Faza 5: dashboard, SSE scrape, upload documents, SETUP.md, testy smoke
+Poniższe liczby pochodzą z **przykładowego** setupu: lokalny LLM na GPU (AMD local GPU + Vulkan), model Minitron-Bielik-7B Q4_K_M, `llama.cpp` jako `llama-server`. Na innym sprzęcie czasy będą inne.
+
+| Metryka | Przykład |
+|---------|----------|
+| Prompt processing | ~200 tok/s |
+| Generacja (tg128) | ~40 tok/s |
+| `quick_fit` ×40 ofert | ~35 s LLM |
+| Pełny apply | ~2–4 min |
+
+Zalecenia pod słabszy lokalny LLM (`config.yaml`): `llm.concurrency: 1`, `scrapers.llm_fit_limit: 40`, `llm.context_size: 4096`.
+
+Więcej: [docs/local-llm-llm-power-baseline.md](docs/local-llm-llm-power-baseline.md) (opcjonalna dokumentacja tuningu).
 
 ## Testy
 
 ```bash
-pytest tests/test_smoke.py -v
+source .venv/bin/activate
+pytest -m "not integration"
 ```
+
+Testy `integration` wymagają działającego LLM i SearXNG w LAN.
+
+## Licencja
+
+Apache License 2.0 — zobacz [LICENSE](LICENSE).

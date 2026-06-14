@@ -10,8 +10,8 @@ llm:
   concurrency: 1
   inference_probe_enabled: true
   inference_probe_cache_seconds: 90
-  wake_url: http://127.0.0.1:8099
-  wake_enabled: true
+  wake_url: ""
+  wake_enabled: false
   wake_timeout_seconds: 90
 search:
   searxng_base_url: http://127.0.0.1:8888
