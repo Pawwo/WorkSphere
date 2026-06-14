@@ -7,15 +7,21 @@ __pycache__/
 # Env
 .env
 
-# Data (personal)
+# Data (personal — never commit)
+data/profile/**
+!data/profile/.gitkeep
+data/setup/**
+!data/setup/.gitkeep
 data/job_scraper/seen_jobs.json
 data/job_scraper/*.md
 data/job_search_tracker.csv
 data/documents/**
 !data/documents/.gitkeep
+data/fit_cache.json
 
-# Generated outputs
+# Generated outputs (CV / cover — user-specific)
 cv/main_*.tex
+cv/main_*.html
 cv/Resume_*.tex
 cv/Resume_*.html
 !cv/main_example.tex
@@ -56,6 +62,8 @@ data/comparison_cache/
 data/llm_benchmark/
 data/benchmarks/
 data/applications/
+data/upskill/*.md
+!data/upskill/.gitkeep
 data/job_scraper/triage_result.json
 data/job_scraper/evaluate_queue.json
 data/job_scraper/reaudit_*.json
@@ -64,3 +72,7 @@ data/job_scraper/app.db
 
 # Deploy secrets (local only)
 deploy/rpi4/.env
+
+# Personal dev notes / comparisons (local only)
+docs/comparison-*.md
+docs/llm-model-comparison-*.md

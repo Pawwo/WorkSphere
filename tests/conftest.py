@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from app.config import clear_settings_cache
+
+FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
+CANDIDATE_PROFILE = FIXTURES_DIR / "candidate_profile.md"
+WIZARD_STATE_JSON = FIXTURES_DIR / "wizard_state.json"
+WOLTERS_CV_HTML = FIXTURES_DIR / "cv" / "wolters_sample.html"
+WOLTERS_APP_DIR = FIXTURES_DIR / "applications" / "wolters_kluwer_polska_sp_z_oo"
 
 
 def pytest_configure(config):

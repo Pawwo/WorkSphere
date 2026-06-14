@@ -3,8 +3,7 @@
 import json
 from pathlib import Path
 
-from app.config import Settings, get_settings
-from app.services.apply_service import application_cv_filename
+from app.config import Settings
 from app.services.cv.identity import parse_identity
 from app.models.apply import FitEvaluation, JobParsed, ReviewerResult
 from app.services.cv.ats_enrichment import apply_pm_ats_enrichment, normalize_job_targets
@@ -16,9 +15,9 @@ from app.services.cv.ats_scoring import (
 )
 from app.services.cv.draft import baseline_cv_draft
 from app.services.cv.html_builder import build_cv_html
-from app.services.cv.identity import parse_identity
 from app.services.cv.truth_guard import build_skill_truth_index
 from app.services.verification_service import run_verification_checklist
+from tests.conftest import CANDIDATE_PROFILE, WOLTERS_APP_DIR, WOLTERS_CV_HTML
 
 
 WOLTERS_TARGETS = {
@@ -41,11 +40,7 @@ WOLTERS_TARGETS = {
 
 
 def _wolters_job() -> JobParsed:
-    parsed = json.loads(
-        (
-            Settings().data_dir / "applications/wolters_kluwer_polska_sp_z_oo/parsed.json"
-        ).read_text(encoding="utf-8")
-    )
+    parsed = json.loads((WOLTERS_APP_DIR / "parsed.json").read_text(encoding="utf-8"))
     return JobParsed(**parsed)
 
 
@@ -58,7 +53,7 @@ def test_config_loads_ats_section():
 
 
 def test_wolters_cv_truth_guard_and_keyword_coverage():
-    profile_md = Path("data/profile/01-candidate-profile.md").read_text(encoding="utf-8")
+    profile_md = CANDIDATE_PROFILE.read_text(encoding="utf-8")
     job = _wolters_job()
     settings = Settings()
     draft = baseline_cv_draft(
@@ -104,7 +99,7 @@ def test_wolters_cv_truth_guard_and_keyword_coverage():
 
 
 def test_wolters_enriched_draft_passes_ats_heuristics():
-    profile_md = Path("data/profile/01-candidate-profile.md").read_text(encoding="utf-8")
+    profile_md = CANDIDATE_PROFILE.read_text(encoding="utf-8")
     job = _wolters_job()
     settings = Settings()
     truth = build_skill_truth_index(profile_md=profile_md, settings=settings)
@@ -158,16 +153,12 @@ def test_wolters_enriched_draft_passes_ats_heuristics():
 
 
 def test_wolters_verification_includes_ats_score():
-    profile_md = Path("data/profile/01-candidate-profile.md").read_text(encoding="utf-8")
+    profile_md = CANDIDATE_PROFILE.read_text(encoding="utf-8")
     job = _wolters_job()
     identity = parse_identity(profile_md)
-    cv_path = Path("cv") / application_cv_filename(identity["name"], job.company, ".html")
-    if not cv_path.exists():
-        cv_path = Path("cv/main_wolters_kluwer_polska_sp_z_oo.html")
-    if not cv_path.exists():
-        return
+    cv_path = WOLTERS_CV_HTML
     cv_html = cv_path.read_text(encoding="utf-8")
-    eval_path = Settings().data_dir / "applications/wolters_kluwer_polska_sp_z_oo/evaluation.json"
+    eval_path = WOLTERS_APP_DIR / "evaluation.json"
     ev = FitEvaluation(**json.loads(eval_path.read_text(encoding="utf-8")))
 
     result = run_verification_checklist(

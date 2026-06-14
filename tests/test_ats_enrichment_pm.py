@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from app.config import Settings, get_settings
-from app.models.apply import JobParsed
+from app.models.apply import FitEvaluation, JobParsed, ReviewerResult
 from app.services.cv.ats_enrichment import (
     apply_pm_ats_enrichment,
     enrich_summary_for_pm,
@@ -19,7 +19,7 @@ from app.services.cv.identity import parse_identity
 from app.services.cv.truth_guard import SkillTruthIndex, build_skill_truth_index
 from app.services.cv.types import ExperienceEntry
 from app.services.verification_service import run_verification_checklist
-from app.models.apply import FitEvaluation, ReviewerResult
+from tests.conftest import CANDIDATE_PROFILE, WOLTERS_APP_DIR
 
 WOLTERS_TARGETS = {
     "role_title": "Project & Program Manager",
@@ -40,7 +40,7 @@ WOLTERS_TARGETS = {
     },
 }
 
-PROFILE = Path("data/profile/01-candidate-profile.md").read_text(encoding="utf-8")
+PROFILE = CANDIDATE_PROFILE.read_text(encoding="utf-8")
 
 
 def test_is_pm_role():
@@ -146,7 +146,7 @@ def test_enriched_html_passes_summary_scan_heuristic():
         job=JobParsed(
             company="Wolters Kluwer",
             role="Project & Program Manager",
-            raw_text=Path("data/applications/wolters_kluwer_polska_sp_z_oo/parsed.json").read_text()[:500],
+            raw_text=(WOLTERS_APP_DIR / "parsed.json").read_text()[:500],
             language="en",
         ),
         profile_md=PROFILE,
@@ -167,7 +167,7 @@ def test_enriched_html_passes_summary_scan_heuristic():
     assert "zapier" not in plain
 
     parsed = json.loads(
-        (settings.data_dir / "applications/wolters_kluwer_polska_sp_z_oo/parsed.json").read_text()
+        (WOLTERS_APP_DIR / "parsed.json").read_text()
     )
     result = run_verification_checklist(
         job=JobParsed(**parsed),

@@ -1,7 +1,6 @@
 """Tests for HTML CV builder."""
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -10,11 +9,12 @@ from app.services.cv.draft import baseline_cv_draft
 from app.services.cv.html_builder import build_cv_html, format_contact_html
 from app.services.cv.identity import parse_identity
 from app.services.cv.renderer_factory import get_document_renderer, get_pdf_compiler
+from tests.conftest import CANDIDATE_PROFILE, WIZARD_STATE_JSON
 
 
 @pytest.fixture
 def wizard_cv_text():
-    state = json.loads(Path("data/setup/wizard_state.json").read_text(encoding="utf-8"))
+    state = json.loads(WIZARD_STATE_JSON.read_text(encoding="utf-8"))
     return state["cv_text"]
 
 
@@ -34,7 +34,7 @@ def test_format_contact_html_linkedin():
 
 def test_build_cv_html_matches_reference_structure(wizard_cv_text):
     settings = Settings()
-    profile_md = Path("data/profile/01-candidate-profile.md").read_text(encoding="utf-8")
+    profile_md = CANDIDATE_PROFILE.read_text(encoding="utf-8")
     draft = baseline_cv_draft(
         role="Chief Operating Officer ( COO )",
         company="UltaHost",

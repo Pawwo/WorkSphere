@@ -23,6 +23,7 @@ from app.services.cv.experience import (
 from app.services.cv.master import resolve_master_cv_text
 from app.services.cv.types import CvDraftData
 from app.services.cv_builder import build_cv_tex, parse_identity
+from tests.conftest import CANDIDATE_PROFILE, WIZARD_STATE_JSON
 
 PROFILE_WITH_PLACEHOLDERS = """
 ## Professional Experience
@@ -39,7 +40,7 @@ Szczecin
 
 @pytest.fixture
 def wizard_cv_text():
-    state = json.loads(Path("data/setup/wizard_state.json").read_text(encoding="utf-8"))
+    state = json.loads(WIZARD_STATE_JSON.read_text(encoding="utf-8"))
     return state["cv_text"]
 
 
@@ -89,7 +90,7 @@ def test_parse_competencies_from_master_groups_skills(wizard_cv_text):
 
 def test_resolve_experience_from_wizard_master(wizard_cv_text):
     settings = Settings()
-    profile_md = Path("data/profile/01-candidate-profile.md").read_text(encoding="utf-8")
+    profile_md = CANDIDATE_PROFILE.read_text(encoding="utf-8")
     entries = resolve_experience_entries(profile_md, settings)
     assert len(entries) >= 10
     coo = entries[0]
@@ -154,12 +155,12 @@ def test_build_cv_tex_has_summary_and_competencies_sections(wizard_cv_text):
     draft = baseline_cv_draft(
         role="Chief Operating Officer ( COO )",
         company="UltaHost",
-        profile_md=Path("data/profile/01-candidate-profile.md").read_text(encoding="utf-8"),
+        profile_md=CANDIDATE_PROFILE.read_text(encoding="utf-8"),
         language="en",
         settings=settings,
     )
     draft.emphasis_jobs = ["Chief Operating Officer", "Founder / Co-Owner"]
-    identity = parse_identity(Path("data/profile/01-candidate-profile.md").read_text(encoding="utf-8"))
+    identity = parse_identity(CANDIDATE_PROFILE.read_text(encoding="utf-8"))
     tex = build_cv_tex(draft, identity, "ultahost")
     assert "Professional Summary" in tex
     assert "Skills \\& Competencies" in tex

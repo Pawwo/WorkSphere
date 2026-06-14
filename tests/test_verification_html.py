@@ -5,12 +5,14 @@ from pathlib import Path
 
 from app.config import Settings
 from app.models.apply import FitEvaluation, JobParsed, ReviewerResult
-from app.services.apply_service import application_cover_filename, application_cv_filename
 from app.services.cv.html_builder import build_cover_html
 from app.services.cv.identity import parse_identity
 from app.services.cv.language import localize_identity
 from app.services.cv.tex_parser import parse_cover_tex
 from app.services.verification_service import detect_renderer_format, run_verification_checklist
+from tests.conftest import CANDIDATE_PROFILE, FIXTURES_DIR, WOLTERS_APP_DIR, WOLTERS_CV_HTML
+
+WOLTERS_COVER_TEX = FIXTURES_DIR / "cover" / "wolters_sample.tex"
 
 
 def test_detect_renderer_format_html():
@@ -19,9 +21,7 @@ def test_detect_renderer_format_html():
 
 
 def test_parse_cover_tex_wolters():
-    tex = Path(
-        "cover_letters/cover_wolters_kluwer_polska_sp_z_oo_project_program_manager.tex"
-    ).read_text(encoding="utf-8")
+    tex = WOLTERS_COVER_TEX.read_text(encoding="utf-8")
     data = parse_cover_tex(tex)
     assert data["salutation"] == "Dear Hiring Manager,"
     assert "Wolters Kluwer" in data["opening"]
@@ -29,36 +29,19 @@ def test_parse_cover_tex_wolters():
     assert "20%" in data["bullets"][1]
 
 
-def test_html_verification_wolters_passes_without_latex_checks():
-    settings = Settings()
-    parsed = json.loads(
-        (settings.data_dir / "applications/wolters_kluwer_polska_sp_z_oo/parsed.json").read_text()
-    )
-    eval_data = json.loads(
-        (settings.data_dir / "applications/wolters_kluwer_polska_sp_z_oo/evaluation.json").read_text()
-    )
+def test_html_verification_wolters_passes_without_latex_checks(tmp_path):
+    parsed = json.loads((WOLTERS_APP_DIR / "parsed.json").read_text(encoding="utf-8"))
+    eval_data = json.loads((WOLTERS_APP_DIR / "evaluation.json").read_text(encoding="utf-8"))
     job = JobParsed(**parsed)
-    profile_md = Path("data/profile/01-candidate-profile.md").read_text(encoding="utf-8")
+    profile_md = CANDIDATE_PROFILE.read_text(encoding="utf-8")
     identity = localize_identity(parse_identity(profile_md), job.language)
-    cv_path = Path("cv") / application_cv_filename(identity["name"], job.company, ".html")
-    if not cv_path.exists():
-        cv_path = Path("cv/main_wolters_kluwer_polska_sp_z_oo.html")
-    cv_html = cv_path.read_text(encoding="utf-8")
-    tex = Path(
-        "cover_letters/cover_wolters_kluwer_polska_sp_z_oo_project_program_manager.tex"
-    ).read_text(encoding="utf-8")
-    cover_data = parse_cover_tex(tex)
+    cv_html = WOLTERS_CV_HTML.read_text(encoding="utf-8")
+    cover_data = parse_cover_tex(WOLTERS_COVER_TEX.read_text(encoding="utf-8"))
     cover_html = build_cover_html(cover_data, identity)
-    cover_pdf = Path("cover_letters") / application_cover_filename(
-        identity["name"], job.company, ".pdf"
-    )
-    if not cover_pdf.exists():
-        cover_pdf = Path(
-            "cover_letters/cover_wolters_kluwer_polska_sp_z_oo_project_program_manager.pdf"
-        )
-    cv_pdf = cv_path.with_suffix(".pdf")
-    if not cv_pdf.exists():
-        cv_pdf = Path("cv/main_wolters_kluwer_polska_sp_z_oo.pdf")
+    cv_pdf = tmp_path / "cv.pdf"
+    cover_pdf = tmp_path / "cover.pdf"
+    cv_pdf.write_bytes(b"%PDF-1.4 test")
+    cover_pdf.write_bytes(b"%PDF-1.4 test")
 
     job_targets = {
         "must_have_keywords": [
