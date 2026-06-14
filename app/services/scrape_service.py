@@ -118,6 +118,7 @@ class ScrapeService:
         limit: int,
         broad: bool,
         is_batch: bool = False,
+        batch_ctx: BatchContext | None = None,
     ) -> tuple[List[tuple[str, SearchResponse | BunCLIError]], List[PortalError]]:
         parallel_results: List[tuple[str, SearchResponse | BunCLIError]] = []
         portal_errors: List[PortalError] = []
@@ -149,23 +150,33 @@ class ScrapeService:
             seen_urls: set[str] = set()
             had_error: Optional[PortalError] = None
             per_query_limit = max(10, limit // max(1, len(li_queries)))
-            for li_q in li_queries[:li_subquery_cap]:
-                try:
-                    outcome = await self.cli.search(
-                        portal,
-                        li_q,
-                        days=days,
-                        limit=per_query_limit,
-                        max_age_hours=self.settings.scrapers_max_age_hours,
-                    )
-                    for job in outcome.results:
-                        if job.url not in seen_urls and self._job_is_fresh(job, portal):
-                            seen_urls.add(job.url)
-                            merged_cards.append(job)
-                except BunCLIError as exc:
-                    had_error = PortalError(portal=portal, code=exc.code, message=str(exc))
-                except Exception as exc:
-                    had_error = PortalError(portal=portal, code="API_ERROR", message=str(exc))
+
+            async def _run_linkedin_queries() -> None:
+                nonlocal had_error, merged_cards, seen_urls
+                for li_q in li_queries[:li_subquery_cap]:
+                    try:
+                        outcome = await self.cli.search(
+                            portal,
+                            li_q,
+                            days=days,
+                            limit=per_query_limit,
+                            max_age_hours=self.settings.scrapers_max_age_hours,
+                        )
+                        for job in outcome.results:
+                            if job.url not in seen_urls and self._job_is_fresh(job, portal):
+                                seen_urls.add(job.url)
+                                merged_cards.append(job)
+                    except BunCLIError as exc:
+                        had_error = PortalError(portal=portal, code=exc.code, message=str(exc))
+                    except Exception as exc:
+                        had_error = PortalError(portal=portal, code="API_ERROR", message=str(exc))
+
+            if batch_ctx is not None:
+                async with batch_ctx.linkedin_sem:
+                    await _run_linkedin_queries()
+            else:
+                await _run_linkedin_queries()
+
             if merged_cards:
                 parallel_results.append(
                     (
@@ -177,7 +188,10 @@ class ScrapeService:
                     )
                 )
             elif had_error:
-                parallel_results.append((portal, had_error))
+                portal_errors.append(had_error)
+                parallel_results.append(
+                    (portal, BunCLIError(portal, had_error.message, code=had_error.code))
+                )
 
         for portal, outcome in parallel_results:
             if isinstance(outcome, BunCLIError):
@@ -392,8 +406,18 @@ class ScrapeService:
             await on_progress("done", 100, f"Zakończono {n} zapytań, {new_count} nowych ofert")
 
         from app.services.post_batch_service import run_post_batch_async
+        from app.storage.files import seen_key
 
-        await run_post_batch_async(self.settings, on_progress=on_progress)
+        triage_keys = {
+            seen_key(item.url, item.company or "", item.title)
+            for item in all_new_jobs
+            if item.url
+        }
+        await run_post_batch_async(
+            self.settings,
+            on_progress=on_progress,
+            triage_keys=triage_keys or None,
+        )
 
         return ScrapeBatchResponse(
             queries_run=n,
@@ -455,6 +479,7 @@ class ScrapeService:
             limit=limit,
             broad=request.broad,
             is_batch=is_batch,
+            batch_ctx=batch_ctx,
         )
 
         if batch_ctx:

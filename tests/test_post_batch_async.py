@@ -11,6 +11,22 @@ from app.services.post_batch_service import run_post_batch, run_post_batch_async
 
 
 @pytest.mark.asyncio
+async def test_run_post_batch_async_passes_triage_keys(tmp_path, monkeypatch):
+    monkeypatch.setenv("POST_BATCH_AUTO_TRIAGE", "1")
+    monkeypatch.setenv("POST_BATCH_PI_COMPARE", "0")
+
+    fake_triage = {"skipped": 0, "priority": 0, "review": 0, "top10": []}
+    keys = {"https://example.com/new-job"}
+
+    with patch("app.services.post_batch_service._run_triage", return_value=fake_triage) as triage:
+        summary = await run_post_batch_async(triage_keys=keys)
+
+    assert summary["triage"] == fake_triage
+    triage.assert_called_once()
+    assert triage.call_args[0][1] == keys
+
+
+@pytest.mark.asyncio
 async def test_run_post_batch_async_from_running_loop(tmp_path, monkeypatch):
     monkeypatch.setenv("POST_BATCH_AUTO_TRIAGE", "1")
     monkeypatch.setenv("POST_BATCH_PI_COMPARE", "0")
@@ -59,17 +75,20 @@ async def test_scrape_batch_post_hook_no_asyncio_run(monkeypatch):
         patch("app.services.scrape_service.LlmPowerService") as power_cls,
         patch("app.services.scrape_service.BatchContext") as batch_ctx_cls,
         patch(
-            "app.services.post_batch_service._run_triage",
-            return_value={"skipped": 0, "priority": 0, "review": 0, "top10": []},
-        ),
+            "app.services.post_batch_service.run_post_batch_async",
+            new_callable=AsyncMock,
+        ) as post_batch,
     ):
         batch_ctx_cls.return_value.flush = AsyncMock()
         batch_ctx_cls.return_value.seen = {}
         power_cls.return_value.enabled = False
 
+        post_batch.return_value = {"triage": {"skipped": 0, "priority": 0, "review": 0, "top10": []}}
+
         result = await svc.run_batch(ScrapeBatchRequest())
 
     assert result.queries_run == 1
+    post_batch.assert_awaited_once()
 
 
 def test_run_triage_safe_when_called_from_sync_context(tmp_path, monkeypatch):

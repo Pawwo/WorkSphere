@@ -29,6 +29,7 @@ class BatchContext:
         self.rocketjobs_circuit_open = False
         self.praca_pl_timeouts = 0
         self.praca_pl_circuit_open = False
+        self.linkedin_sem = asyncio.Semaphore(2)
 
     def record_rocketjobs_timeout(self) -> None:
         self.rocketjobs_timeouts += 1

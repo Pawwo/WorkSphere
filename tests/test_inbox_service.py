@@ -334,3 +334,71 @@ def test_run_triage_auto_skip_persists_skip_reason(tmp_path):
     assert stored["skip_reason"]["source"] == "auto_triage"
     assert stored["skip_reason"]["category"] == "auto_low_fit"
     assert stored["skip_reason"]["triage_score"] is not None
+
+
+def test_run_triage_incremental_updates_only_given_keys(tmp_path):
+    settings = _settings(tmp_path)
+    seen_path = settings.seen_jobs_path
+    seen = json.loads(seen_path.read_text())
+    seen["seen"]["https://example.com/job-2"] = {
+        "title": "Beta Role",
+        "company": "Beta",
+        "url": "https://example.com/job-2",
+        "first_seen": "2026-06-10",
+        "status": "new",
+        "fit": "high",
+    }
+    seen_path.write_text(json.dumps(seen), encoding="utf-8")
+
+    svc = InboxService(settings)
+    svc.run_triage()
+    before = json.loads((settings.job_scraper_dir / "triage_result.json").read_text())
+    job1_before = next(r for r in before["ranked"] if r["url"] == "https://example.com/job-1")
+
+    seen["seen"]["https://example.com/job-2"]["fit"] = "low"
+    seen["seen"]["https://example.com/job-2"]["salary_meets_threshold"] = False
+    seen["seen"]["https://example.com/job-2"]["salary_b2b_monthly"] = 12000
+    seen["seen"]["https://example.com/job-2"]["salary_source"] = "direct"
+    seen_path.write_text(json.dumps(seen), encoding="utf-8")
+
+    svc.run_triage(keys={"https://example.com/job-2"})
+    after = json.loads((settings.job_scraper_dir / "triage_result.json").read_text())
+    job1_after = next(r for r in after["ranked"] if r["url"] == "https://example.com/job-1")
+    job2_after = next(r for r in after["ranked"] if r["url"] == "https://example.com/job-2")
+
+    assert job1_after["tier"] == job1_before["tier"]
+    assert job1_after["triage_score"] == job1_before["triage_score"]
+    assert job2_after["tier"] == "skip"
+    assert job2_after["quick_fit"] == "low"
+    assert len(after["ranked"]) == 2
+
+
+def test_run_triage_incremental_leaves_evaluated_outside_keys(tmp_path):
+    settings = _settings(tmp_path)
+    seen_path = settings.seen_jobs_path
+    seen = json.loads(seen_path.read_text())
+    seen["seen"]["https://example.com/evaluated"] = {
+        "title": "COO",
+        "company": "TrackerCo",
+        "url": "https://example.com/evaluated",
+        "first_seen": "2026-06-11",
+        "status": "evaluated",
+        "fit": "low",
+    }
+    seen["seen"]["https://example.com/job-new"] = {
+        "title": "Fresh Role",
+        "company": "Beta",
+        "url": "https://example.com/job-new",
+        "first_seen": "2026-06-14",
+        "status": "new",
+        "fit": "low",
+    }
+    seen_path.write_text(json.dumps(seen), encoding="utf-8")
+
+    svc = InboxService(settings)
+    svc.run_triage()
+    svc.run_triage(keys={"https://example.com/job-new"})
+
+    stored = json.loads(seen_path.read_text())["seen"]
+    assert stored["https://example.com/evaluated"]["status"] == "evaluated"
+    assert stored["https://example.com/job-new"]["status"] == "skipped"

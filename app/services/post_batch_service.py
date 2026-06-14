@@ -16,8 +16,11 @@ logger = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def _run_triage(settings: Settings) -> dict:
-    return InboxService(settings).run_triage()
+def _run_triage(settings: Settings, triage_keys: set[str] | None = None) -> dict:
+    keys = triage_keys
+    if keys and os.environ.get("POST_BATCH_TRIAGE_SCOPE", "incremental") == "full":
+        keys = None
+    return InboxService(settings).run_triage(keys=keys)
 
 
 def _run_pi_compare() -> dict:
@@ -55,7 +58,7 @@ def run_post_batch(settings: Settings | None = None) -> dict:
     summary: dict = {}
 
     if os.environ.get("POST_BATCH_AUTO_TRIAGE", "1") != "0":
-        triage = _run_triage(settings)
+        triage = _run_triage(settings, None)
         summary["triage"] = triage
         logger.info(
             "Post-batch triage: priority=%s review=%s skipped=%s",
@@ -73,6 +76,7 @@ def run_post_batch(settings: Settings | None = None) -> dict:
 async def run_post_batch_async(
     settings: Settings | None = None,
     on_progress=None,
+    triage_keys: set[str] | None = None,
 ) -> dict:
     """Async-safe post-batch hooks (triage + Pi compare)."""
     settings = settings or get_settings()
@@ -82,7 +86,7 @@ async def run_post_batch_async(
     if os.environ.get("POST_BATCH_AUTO_TRIAGE", "1") != "0":
         if on_progress:
             await on_progress("post_batch", 99, "Triage inbox…")
-        triage = await loop.run_in_executor(None, _run_triage, settings)
+        triage = await loop.run_in_executor(None, _run_triage, settings, triage_keys)
         summary["triage"] = triage
         logger.info(
             "Post-batch triage: priority=%s review=%s skipped=%s",

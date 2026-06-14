@@ -18,6 +18,12 @@ def _settings(tmp_path: Path) -> Settings:
     return Settings().model_copy(update={"data_dir": data.resolve()})
 
 
+def test_batch_context_has_linkedin_semaphore(tmp_path):
+    settings = _settings(tmp_path)
+    ctx = BatchContext(settings)
+    assert ctx.linkedin_sem._value == 2  # noqa: SLF001 — test seam
+
+
 @pytest.mark.asyncio
 async def test_batch_context_loads_and_flushes(tmp_path):
     settings = _settings(tmp_path)

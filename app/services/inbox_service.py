@@ -515,17 +515,31 @@ class InboxService:
                 )
         return status, reason, skipped, auto_skip_reason, tier
 
-    def run_triage(self) -> dict:
+    def run_triage(self, *, keys: set[str] | None = None) -> dict:
+        self.repo.invalidate()
         seen = self.repo.all()
+        incremental = bool(keys)
         salary_svc = SalaryService(self.settings)
         profile_langs = load_candidate_languages(self.settings)
 
-        ranked: list[dict] = []
+        ranked_by_url: dict[str, dict] = {}
+        if incremental:
+            existing = self._load_triage_data() or {}
+            for row in existing.get("ranked", []):
+                url = row.get("url")
+                if url:
+                    ranked_by_url[url] = row
+
         skipped = 0
         pending_llm: list[tuple[str, str]] = []
         llm_ctx: dict[str, dict] = {}
 
-        for key, job in seen.items():
+        if incremental:
+            items = [(k, seen[k]) for k in keys if k in seen]
+        else:
+            items = list(seen.items())
+
+        for key, job in items:
             title = job.title
             company = job.company
             triage_score, reason = score_job(title, company)
@@ -632,7 +646,8 @@ class InboxService:
                 row["skip_reason"] = auto_skip_reason.model_dump()
             elif job.skip_reason:
                 row["skip_reason"] = job.skip_reason.model_dump()
-            ranked.append(row)
+            row_url = job.url or key
+            ranked_by_url[row_url] = row
 
             if (
                 profile_langs
@@ -648,7 +663,7 @@ class InboxService:
                     "quick_fit": quick_fit,
                     "job": job,
                     "job_data": dict(job_data),
-                    "row_idx": len(ranked) - 1,
+                    "row_url": row_url,
                 }
 
         llm_extracts = _run_async_from_sync(
@@ -661,7 +676,9 @@ class InboxService:
             gaps = self._language_gaps(llm_reqs, profile_langs)
             if not gaps:
                 continue
-            row = ranked[ctx["row_idx"]]
+            row = ranked_by_url.get(ctx["row_url"])
+            if row is None:
+                continue
             job = ctx["job"]
             status, reason, skipped, auto_skip_reason, tier = self._apply_language_skip(
                 gaps=gaps,
@@ -695,6 +712,8 @@ class InboxService:
             if updates:
                 self.repo.upsert(key, job.model_copy(update=updates))
 
+        ranked = list(ranked_by_url.values())
+
         ranked.sort(
             key=lambda x: (
                 fit_sort_key(x["quick_fit"]),
@@ -706,11 +725,12 @@ class InboxService:
         priority = [r for r in ranked if r["tier"] == "priority"]
         review = [r for r in ranked if r["tier"] == "review"]
         top10 = (priority + review)[:10]
+        skipped_count = sum(1 for r in ranked if r.get("tier") == "skip")
 
         write_json(
             self.triage_path,
             {
-                "skipped_count": skipped,
+                "skipped_count": skipped_count,
                 "priority_count": len(priority),
                 "review_count": len(review),
                 "ranked": ranked,
