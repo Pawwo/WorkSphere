@@ -406,7 +406,6 @@ class ScrapeService:
             await on_progress("done", 100, f"Zakończono {n} zapytań, {new_count} nowych ofert")
 
         from app.services.post_batch_service import run_post_batch_async
-        from app.storage.files import seen_key
 
         triage_keys = {
             seen_key(item.url, item.company or "", item.title)
