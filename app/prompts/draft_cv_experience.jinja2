@@ -1,0 +1,27 @@
+{% include 'ats_system.jinja2' %}
+
+Rewrite experience bullets for the job posting (ATS). Language: **{{ cv_language_name }}** only.
+
+Targets: {{ job_targets_json }}
+Role: {{ role }} @ {{ company }}
+Dozwolone z profilu: {{ allowed_tools_sample }}
+{% if first_batch %}First roles — 4-5 bullets per job, strongest achievement lead.{% else %}2-3 bullets per job.{% endif %}
+
+Positions (keep title/company/period/location; rewrite bullets):
+{{ experience_source }}
+
+Rules:
+- Facts from source only; weave posting keywords naturally when profile supports them
+- Each bullet MUST start with a result verb (Managed, Led, Coordinated, Delivered, Implemented…)
+- Each bullet: result + context (metric if present in source)
+- COO/operations lead: include at least one bullet on full project lifecycle, risk and stakeholder communication
+- When tools_explicit includes JIRA/Confluence and profile supports it: mention project collaboration tools
+- keyword_hints: phrases from targets to emphasize (must already appear in bullet text)
+
+Return ONLY JSON:
+{
+  "experience_entries": [
+    {"period": "...", "title": "...", "company": "...", "location": "...", "bullets": ["..."], "keyword_hints": ["JIRA", "stakeholder management"]}
+  ],
+  "tailoring_notes": ["..."]
+}

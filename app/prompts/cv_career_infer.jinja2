@@ -1,0 +1,27 @@
+Na podstawie profilu z CV zaproponuj cele kariery i konfigurację wyszukiwania ofert w Polsce.
+Preferuj role zgodne z ostatnimi stanowiskami w CV (np. COO, Operations, ERP/Odoo, AI transformation).
+Zwróć JSON:
+{
+  "target_roles": ["3-6 docelowych stanowisk"],
+  "target_industries": "branże tekstem",
+  "excites": "co motywuje",
+  "deal_breakers": "czego unika",
+  "must_haves": "wymagania od pracodawcy",
+  "salary_expectation": "widełki jeśli wnioskujesz lub pusty string",
+  "location_constraints": "miasta, hybrid, remote",
+  "role_titles": ["3-8 fraz do scrapera"],
+  "key_skills": ["5-10 słów kluczowych"],
+  "city": "miasto główne",
+  "ideal_locations": ["lista"],
+  "acceptable_locations": ["lista"],
+  "adjacent_roles": ["2-4 role sąsiednie"]
+}
+
+Kandydat: {{ full_name }}, {{ location }}
+Ostatnie role: {{ roles | join(", ") }}
+Umiejętności: {{ programming }} | {{ domain }} | {{ tools }}
+
+Fragment CV:
+{{ cv_snippet }}
+
+Tylko JSON.

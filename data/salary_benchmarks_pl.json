@@ -1,0 +1,34 @@
+{
+  "metadata": {
+    "source": "Szacunki rynkowe PL 2024-2025 (Hays, Sedlak, JustJoin medians — B2B netto/mies.)",
+    "currency": "PLN",
+    "contract": "B2B",
+    "updated": "2026-06-09"
+  },
+  "b2b_monthly_threshold": 25000,
+  "role_estimates_b2b_monthly": {
+    "coo": { "min": 28000, "median": 38000, "max": 55000 },
+    "operations_director": { "min": 24000, "median": 32000, "max": 45000 },
+    "head_of_operations": { "min": 22000, "median": 30000, "max": 42000 },
+    "program_manager": { "min": 20000, "median": 27000, "max": 38000 },
+    "project_manager": { "min": 18000, "median": 24000, "max": 32000 },
+    "engineering_manager": { "min": 22000, "median": 30000, "max": 42000 },
+    "product_manager": { "min": 20000, "median": 28000, "max": 40000 },
+    "odoo": { "min": 16000, "median": 22000, "max": 32000 },
+    "ai_manager": { "min": 22000, "median": 30000, "max": 45000 },
+    "default_manager": { "min": 18000, "median": 25000, "max": 35000 },
+    "default": { "min": 14000, "median": 20000, "max": 28000 }
+  },
+  "title_patterns": [
+    { "pattern": "coo|chief operating", "role": "coo" },
+    { "pattern": "operations director|dyrektor operac", "role": "operations_director" },
+    { "pattern": "head of operations|head of oper", "role": "head_of_operations" },
+    { "pattern": "program manager|programme manager", "role": "program_manager" },
+    { "pattern": "project manager|kierownik projekt", "role": "project_manager" },
+    { "pattern": "engineering manager|chapter lead", "role": "engineering_manager" },
+    { "pattern": "product manager|product owner", "role": "product_manager" },
+    { "pattern": "odoo|erp", "role": "odoo" },
+    { "pattern": "chief ai|ai implementation|caio|ai manager|ai director|ai transformation|ai program", "role": "ai_manager" },
+    { "pattern": "manager|menedżer|dyrektor|director|lead", "role": "default_manager" }
+  ]
+}

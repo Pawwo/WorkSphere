@@ -1,0 +1,66 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Env
+.env
+
+# Data (personal)
+data/job_scraper/seen_jobs.json
+data/job_scraper/*.md
+data/job_search_tracker.csv
+data/documents/**
+!data/documents/.gitkeep
+
+# Generated outputs
+cv/main_*.tex
+cv/Resume_*.tex
+cv/Resume_*.html
+!cv/main_example.tex
+cover_letters/cover_*.tex
+cover_letters/cover_*.html
+cover_letters/Cover_*.tex
+cover_letters/Cover_*.html
+*.pdf
+*.aux
+*.log
+*.out
+
+# Node / Bun
+node_modules/
+.agents/skills/node_modules/
+.agents/skills/bun.lock
+**/cli/node_modules/
+**/cli/bun.lock
+
+# SQLite
+data/app.db
+
+# IDE / tooling
+.vscode/
+.idea/
+.cursor/
+.rollback/
+
+# CI / coverage
+htmlcov/
+.coverage
+.deployed-version
+
+# Backups / cache
+backup/
+comparison_cache/
+data/comparison_cache/
+data/llm_benchmark/
+data/benchmarks/
+data/applications/
+data/job_scraper/triage_result.json
+data/job_scraper/evaluate_queue.json
+data/job_scraper/reaudit_*.json
+data/job_scraper/app.db
+*.sqlite
+
+# Deploy secrets (local only)
+deploy/rpi4/.env

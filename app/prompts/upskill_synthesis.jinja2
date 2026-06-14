@@ -1,0 +1,24 @@
+Na podstawie profilu kandydata i wymagań z ofert pracy zidentyfikuj luki kompetencyjne.
+
+Zwróć JSON:
+{
+  "gaps": [
+    {"priority": "Critical|High|Medium|Low", "skill": "nazwa", "gap_type": "hard|domain|soft|tooling|credential", "source": "skąd wynika"}
+  ],
+  "learning_plan": [
+    {
+      "gap": "nazwa",
+      "priority": "Critical|High|Medium|Low",
+      "study_direction": "co uczyć się najpierw",
+      "time_estimate": "~20h"
+    }
+  ]
+}
+
+Profil:
+{{ profile }}
+
+Oferty / wymagania:
+{{ jobs_context }}
+
+Tryb: {{ mode }}

@@ -1,0 +1,17 @@
+{
+  "name": "linkedin-pl-cli",
+  "version": "1.0.0",
+  "description": "CLI for searching jobs on LinkedIn Poland",
+  "type": "module",
+  "main": "src/cli.ts",
+  "scripts": {
+    "start": "bun run src/cli.ts",
+    "test": "bun test --timeout 30000",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@bunli/core": "0.9.1",
+    "scraper-shared": "workspace:*",
+    "zod": "^3.25.76"
+  }
+}

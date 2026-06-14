@@ -1,0 +1,12 @@
+{
+  "targets_json": "{\"role_title\": \"Head of Operations Technology\", \"must_have_keywords\": [\"Odoo ERP\", \"KPI\", \"digital transformation\", \"team leadership\"], \"nice_to_have_keywords\": [\"CI/CD\"], \"priority_themes\": [\"operations\", \"ERP\"], \"emphasis_jobs\": [\"Chief Operating Officer\"], \"profile_angle\": \"COO with Odoo and transformation experience\", \"avoid_framing\": [\"python developer\"]}",
+  "competencies_baseline": "- Executive Leadership: COO Leadership, Operations Management, Strategic Planning\n- ERP & Delivery: Odoo ERP, Implementation, KPI Dashboards\n- AI & Automation: LLM, RAG, Process Automation",
+  "master_summary": "COO and Odoo practice founder with 15+ years in operations, ERP delivery, and AI-enabled transformation.",
+  "experience_source": "Chief Operating Officer | VentorTech | 08.2025-Present | Szczecin\n- Led Odoo delivery operations and KPI dashboards.\n- Managed cross-functional teams and digital transformation initiatives.",
+  "cv_draft_snippet": "\\section{Experience}\nChief Operating Officer at VentorTech. Odoo ERP delivery and KPI management.",
+  "cover_draft_snippet": "Dear Hiring Manager, Applying for Head of Operations Technology. Odoo ERP background.",
+  "behavioral": "Analytical-practical leader. Thrives in scaling operations and ERP delivery teams.",
+  "expand_sources": "GitHub: odoo-automation-scripts — Python tooling for ERP migrations and CI pipelines.\nDocument: internal playbook on KPI dashboards for SaaS operations teams.",
+  "jobs_context": "Recent high-fit postings require: Odoo ERP admin, operations leadership, AI automation, KPI/P&L. Gaps seen: Kubernetes platform ops, deep SOC2 compliance program ownership.",
+  "company_snippets": [{"title": "Kuchnia Vikinga about", "snippet": "Food tech company scaling operations and digital channels in Poland."}]
+}

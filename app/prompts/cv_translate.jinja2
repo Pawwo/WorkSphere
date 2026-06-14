@@ -1,0 +1,23 @@
+Translate CV content to {{ cv_language_name }}. Keep facts unchanged; do not invent.
+
+Target language: {{ cv_language_name }} (job posting language)
+Role: {{ role }} @ {{ company }}
+
+Translate ALL of the following to {{ cv_language_name }}:
+- profile_statement
+- every experience entry (title if not a proper noun, location labels, all bullets)
+- awards (if any)
+
+Use professional CV tone. Preserve company names, dates, and metrics.
+
+Input JSON:
+{{ draft_json }}
+
+Return ONLY JSON:
+{
+  "profile_statement": "...",
+  "experience_entries": [
+    {"period": "...", "title": "...", "company": "...", "location": "...", "bullets": ["..."]}
+  ],
+  "awards": ["..."]
+}

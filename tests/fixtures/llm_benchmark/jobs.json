@@ -1,0 +1,36 @@
+{
+  "quick_fit_high": {
+    "title": "Head of Operations",
+    "company": "Partyhat",
+    "location": "Remote Poland",
+    "description": "Lead operations for a venture-backed gaming studio. Own P&L, team leadership, process scaling, KPI dashboards, and digital transformation initiatives. Hybrid/remote within Poland."
+  },
+  "quick_fit_low": {
+    "title": "Operator sprzętu (koparka) (k/m/x)",
+    "company": "Budowlanka Sp. z o.o.",
+    "location": "Szczecin",
+    "description": "Obsługa koparki na budowie. Prawo jazdy kat. C. Brak wymagań IT ani zarządzania."
+  },
+  "quick_fit_medium": {
+    "title": "Delivery Excellence and Quality Manager",
+    "company": "EY",
+    "location": "Warszawa / hybrid",
+    "description": "Manage delivery quality for consulting engagements. Stakeholder management, governance, some transformation exposure. Not a pure COO role but operations-adjacent leadership."
+  },
+  "quick_fit_security": {
+    "title": "EMEA Information Security Director",
+    "company": "Aon",
+    "location": "Kraków",
+    "description": "Lead regional cybersecurity strategy, ISO 27001, SOC, incident response, CISO-level stakeholder management. Deep InfoSec leadership required."
+  },
+  "tailor_job": {
+    "role": "Head of Operations Technology",
+    "company": "Kuchnia Vikinga",
+    "language": "en",
+    "raw_text": "Head of Operations Technology & Digital Transformation. Requirements: Odoo ERP, KPI, P&L, team leadership, digital transformation, CI/CD. Location: Poland, hybrid."
+  },
+  "evaluate_job": {
+    "raw_text": "Head of Operations Technology & Digital Transformation at Kuchnia Vikinga. Lead operations technology, Odoo ERP ecosystem, KPI reporting, team leadership, AI-enabled automation. Hybrid Poland. B2B 25-35k PLN/month."
+  },
+  "parse_job_text": "Kuchnia Vikinga | Head of Operations Technology | Warszawa, hybrid\nRequirements: Odoo, operations leadership, digital transformation."
+}

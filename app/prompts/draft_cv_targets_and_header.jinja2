@@ -1,0 +1,42 @@
+{% include 'ats_system.jinja2' %}
+
+Analyze the posting AND tailor the CV HEADER in one step. Output language for profile_statement: **{{ cv_language_name }}** only.
+
+Role: {{ role }} @ {{ company }}
+
+Dozwolone z profilu: {{ allowed_tools_sample }}
+
+## Baseline competencies (keep structure — do NOT replace with keywords)
+{{ competencies_baseline }}
+
+## Master summary (source facts)
+{{ master_summary }}
+
+## Profile excerpt
+{{ profile }}
+
+## Posting
+{{ job_posting }}
+
+Return ONLY JSON combining job targets AND header fields:
+{
+  "role_title": "exact role title from posting",
+  "must_have_keywords": ["5-12 required phrases from posting"],
+  "nice_to_have_keywords": ["3-8 optional"],
+  "tools_explicit": ["JIRA, Confluence, ..."],
+  "soft_skills": ["3-6 soft skills"],
+  "normalized_skills": [{"posting_term": "...", "candidate_term": "..."}],
+  "keyword_placement_hints": {"summary": ["..."], "top_bullets": ["..."]},
+  "priority_themes": ["3-5 themes"],
+  "emphasis_jobs": ["2-4 job titles from candidate history"],
+  "profile_angle": "1-2 sentences",
+  "avoid_framing": ["..."],
+  "profile_statement": "4-6 lines tailored for {{ role }} @ {{ company }}",
+  "competency_keywords": ["phrases to weave into competencies"],
+  "competencies": ["Category: skill, skill"],
+  "tailoring_notes": ["1-2 short decisions"]
+}
+
+Rules:
+- Keywords must come from the posting; map tools only if in allowed list.
+- Each competencies entry: single string "Category: comma-separated skills".

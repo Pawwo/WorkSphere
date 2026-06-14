@@ -1,0 +1,42 @@
+Dopasuj CV do konkretnego ogłoszenia. Język CV: **English only** (moderncv, banking, max ~2 strony).
+
+## Analiza ogłoszenia (ATS targets)
+{{ job_targets_json }}
+
+## Reguły
+- Używaj WYŁĄCZNIE faktów z profilu i doświadczenia poniżej. Zero fabrykacji.
+- Profile statement: 4-6 linii, lead with fit for {{ role }} at {{ company }}, wpleć must_have_keywords naturalnie.
+- competencies: 5-7 pozycji „Category: details” — priorytet themes i keywords z analizy.
+- experience_entries: reverse chronological; dla ról z emphasis_jobs — więcej i mocniejsze bullet points (4-5 / 3-4 / 2-3).
+- Przepisz bullet points: podkreśl to, co pasuje do ogłoszenia; nie kopiuj 1:1 jeśli można lepiej dopasować słownictwo ATS.
+- Zachowaj wszystkie stanowiska z listy doświadczenia (nie usuwaj historii).
+- education_entries: pełna nazwa uczelni (University of Applied Sciences jeśli dotyczy).
+- Unikaj avoid_framing z analizy.
+
+Zwróć TYLKO JSON:
+{
+  "profile_statement": "...",
+  "competencies": ["Category: details", "..."],
+  "experience_entries": [
+    {"period": "08.2025--Present", "title": "...", "company": "...", "location": "...", "bullets": ["..."]}
+  ],
+  "education_entries": [
+    {"period": "2003--2006", "degree": "...", "institution": "...", "location": "...", "detail": "..."}
+  ],
+  "languages_line": "Polish (native), English (advanced), ...",
+  "publications": ["..."],
+  "awards": ["..."],
+  "references_line": "Available upon request.",
+  "tailoring_notes": ["krótkie uzasadnienie 2-4 decyzji dopasowania"]
+}
+
+Profil kandydata (skrót):
+{{ profile }}
+
+Doświadczenie źródłowe (baza faktów — przepisz/dopasuj, nie skracaj listy stanowisk):
+{{ experience_source }}
+
+Podsumowanie ATS (master):
+{{ master_summary }}
+
+Target: {{ role }} @ {{ company }}

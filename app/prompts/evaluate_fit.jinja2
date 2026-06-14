@@ -1,0 +1,30 @@
+Oceń dopasowanie oferty pracy do profilu kandydata według frameworku z 04-job-evaluation.md.
+
+Zwróć wyłącznie poprawny JSON (bez markdown), np.:
+{
+  "skills_match": {"score": 75, "matches": ["JIRA", "project management"], "gaps": ["Waterfall"]},
+  "experience_match": {"score": 80, "notes": "..."},
+  "behavioral_match": {"score": 70, "notes": "..."},
+  "location_match": {"pass": true, "notes": "..."},
+  "overall_fit": "moderate",
+  "recommendation": "krótkie uzasadnienie po polsku"
+}
+Pole overall_fit musi być dokładnie: "strong", "moderate" lub "weak".
+Pole recommendation ZAWSZE po polsku.
+W skills_match.gaps wpisuj WYŁĄCZNIE wymagania wprost wymienione w ogłoszeniu, których kandydat realnie nie ma w profilu.
+NIE dodawaj luk z innych ofert ani technologii spoza ogłoszenia (np. SAP, Salesforce, Zapier), jeśli nie występują w tekście ogłoszenia.
+NIE traktuj kompetencji kandydata jako „luki” — gaps to braki względem TEGO ogłoszenia.
+
+{{ language_assessment }}
+
+Profil kandydata:
+{{ profile_excerpt }}
+
+Framework oceny:
+{{ evaluation_framework }}
+
+Ocena wynagrodzenia (obowiązkowa):
+{{ salary_assessment }}
+
+Ogłoszenie:
+{{ job_posting }}

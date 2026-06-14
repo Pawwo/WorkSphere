@@ -1,0 +1,1 @@
+"""WorkSphere — standalone web application."""

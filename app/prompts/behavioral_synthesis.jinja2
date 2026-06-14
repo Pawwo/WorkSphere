@@ -1,0 +1,17 @@
+Na podstawie odpowiedzi kandydata napisz krótki profil behawioralny po polsku (3-5 zdań + 3-5 bulletów mocnych stron).
+Zwróć JSON:
+{
+  "profile_type": "np. Analityczny-Praktyczny",
+  "summary": "1-2 zdania",
+  "strengths": ["...", "..."],
+  "work_best": ["...", "..."],
+  "growth_areas": ["..."]
+}
+
+Odpowiedzi:
+- Środowisko w którym dobrze pracuję: {{ thrive_in }}
+- Co wyczerpuje energię: {{ drains_energy }}
+- Styl pracy w zespole: {{ team_style }}
+- Podejmowanie decyzji: {{ decision_style }}
+- Styl komunikacji: {{ communication_style }}
+{% if notes %}- Dodatkowe uwagi: {{ notes }}{% endif %}

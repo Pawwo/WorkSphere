@@ -1,0 +1,211 @@
+/* Control panel */
+.o_control_panel {
+  background: var(--odoo-card-bg);
+  border-bottom: 1px solid var(--odoo-border);
+  padding: 10px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  position: sticky;
+  top: var(--odoo-topbar-h);
+  z-index: 40;
+}
+
+.o_tabs {
+  display: flex;
+  gap: 2px;
+}
+.o_tab {
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--odoo-radius);
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--odoo-muted);
+}
+.o_tab:hover {
+  background: #f8f9fa;
+  color: var(--odoo-text);
+}
+.o_tab.active {
+  background: var(--odoo-primary);
+  color: #fff;
+  border-color: var(--odoo-primary);
+}
+
+.o_filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+}
+.o_filters label {
+  font-size: 12px;
+  color: var(--odoo-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.o_filters select,
+.o_filters input[type="search"] {
+  padding: 5px 8px;
+  border: 1px solid var(--odoo-border);
+  border-radius: var(--odoo-radius);
+  font-size: 13px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border-radius: var(--odoo-radius);
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid var(--odoo-border);
+  background: #fff;
+  color: var(--odoo-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn:hover {
+  background: #f8f9fa;
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--odoo-primary);
+  border-color: var(--odoo-primary);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--odoo-primary-dark);
+  border-color: var(--odoo-primary-dark);
+  color: #fff;
+}
+.btn-secondary {
+  background: #fff;
+}
+.btn-link {
+  border: none;
+  background: none;
+  color: var(--odoo-accent);
+  padding: 4px 8px;
+}
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+/* Modal — skip reason wizard */
+.o_modal_dialog {
+  border: none;
+  padding: 0;
+  max-width: 520px;
+  width: calc(100% - 32px);
+  border-radius: var(--odoo-radius);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+.o_modal_dialog::backdrop {
+  background: rgba(33, 37, 41, 0.45);
+}
+.o_modal {
+  display: flex;
+  flex-direction: column;
+  background: var(--odoo-card-bg);
+}
+.o_modal_header {
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
+  border-bottom: 1px solid var(--odoo-border);
+}
+.o_modal_header h2 {
+  margin: 0 0 var(--space-xs);
+  font-size: 18px;
+  font-weight: 600;
+}
+.o_modal_subtitle {
+  margin: 0;
+  font-size: var(--font-base);
+  color: var(--odoo-muted);
+}
+.o_modal_body {
+  padding: var(--space-lg);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.o_modal_footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--odoo-border);
+}
+.o_radio_group {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+.o_radio_group legend {
+  margin-bottom: var(--space-md);
+}
+.o_radio_row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: var(--space-xs) 0;
+  cursor: pointer;
+  font-size: var(--font-base);
+}
+.o_radio_row input[type="radio"],
+.o_radio_row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--odoo-primary);
+}
+.o_skip_fields {
+  margin: 0 0 var(--space-md) 26px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.o_skip_fields label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: var(--font-sm);
+  color: var(--odoo-muted);
+}
+.o_skip_fields input,
+.o_skip_fields select,
+.o_skip_fields textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--odoo-border);
+  border-radius: var(--odoo-radius);
+  font-size: var(--font-base);
+  color: var(--odoo-text);
+}
+.o_skip_fields input:focus,
+.o_skip_fields select:focus,
+.o_skip_fields textarea:focus {
+  outline: 2px solid var(--odoo-primary);
+  outline-offset: 2px;
+}
+.o_form_error {
+  margin: var(--space-md) 0 0;
+  color: var(--odoo-danger);
+  font-size: var(--font-sm);
+}
+.badge-skip-manual {
+  background: #e8eaf6;
+  color: #3949ab;
+}
+.badge-skip-auto {
+  background: #fff3e0;
+  color: #e65100;
+}
+
