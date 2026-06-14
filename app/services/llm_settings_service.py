@@ -16,9 +16,49 @@ def _host_from_url(url: str) -> str:
     return parsed.hostname or "127.0.0.1"
 
 
+def _is_loopback_host(host: str) -> bool:
+    return host in ("127.0.0.1", "localhost", "::1")
+
+
+def _dotenv_value(key: str) -> str | None:
+    from app.config import ROOT
+
+    path = ROOT / ".env"
+    if not path.is_file():
+        return None
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, val = line.split("=", 1)
+        if name.strip() != key:
+            continue
+        val = val.strip().strip('"').strip("'")
+        return val or None
+    return None
+
+
+def _bielik_preset_host(settings: Settings) -> str:
+    """Host for :8000/:8006 presets — prefer wake/.env over loopback config.yaml."""
+    wake = (settings.llm_wake_url or "").strip()
+    if wake:
+        host = _host_from_url(wake)
+        if not _is_loopback_host(host):
+            return host
+    host = _host_from_url(settings.llm_base_url)
+    if not _is_loopback_host(host):
+        return host
+    from_env = _dotenv_value("LLM_BASE_URL")
+    if from_env:
+        env_host = _host_from_url(from_env)
+        if not _is_loopback_host(env_host):
+            return env_host
+    return host
+
+
 def bielik_presets(settings: Settings | None = None) -> list[dict[str, str]]:
     s = settings or get_settings()
-    host = _host_from_url(s.llm_base_url)
+    host = _bielik_preset_host(s)
     return [
         {
             "id": "8000",
@@ -98,11 +138,21 @@ def apply_llm_settings(
     api_key: str | None = None,
 ) -> dict:
     updates: dict[str, str] = {}
+    wake_url: str | None = None
+    wake_enabled: bool | None = None
     if base_url is not None:
         normalized = base_url.strip().rstrip("/")
         if not normalized.startswith("http"):
             raise ValueError("base_url must start with http:// or https://")
         updates["base_url"] = normalized
+        host = _host_from_url(normalized)
+        if not _is_loopback_host(host):
+            env_wake = (_dotenv_value("LLM_WAKE_URL") or "").strip()
+            if env_wake:
+                wake_url = env_wake.rstrip("/")
+            env_wake_on = (_dotenv_value("LLM_WAKE_ENABLED") or "").lower()
+            if env_wake_on in ("1", "true", "yes", "on"):
+                wake_enabled = True
     if model is not None:
         model_value = model.strip()
         if not model_value:
@@ -112,7 +162,13 @@ def apply_llm_settings(
         updates["api_key"] = api_key.strip()
     if not updates:
         raise ValueError("Provide at least one of base_url, model, api_key")
-    update_yaml_llm_settings(**updates)
+    update_yaml_llm_settings(
+        base_url=updates.get("base_url"),
+        model=updates.get("model"),
+        api_key=updates.get("api_key"),
+        wake_url=wake_url,
+        wake_enabled=wake_enabled,
+    )
     return current_llm_config()
 
 

@@ -37,6 +37,42 @@ def test_llm_presets_include_8006_and_openrouter(tmp_path, monkeypatch):
     assert any(p["base_url"] == OPENROUTER_BASE_URL for p in presets)
 
 
+def test_llm_presets_use_dotenv_host_when_config_loopback(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.config.ROOT", tmp_path)
+    (tmp_path / "config.yaml").write_text(
+        yaml.safe_dump({"llm": {"base_url": "http://127.0.0.1:8006/v1"}}),
+        encoding="utf-8",
+    )
+    (tmp_path / ".env").write_text(
+        "LLM_BASE_URL=http://127.0.0.1:8006/v1\n",
+        encoding="utf-8",
+    )
+    clear_settings_cache()
+    presets = llm_presets(get_settings())
+    bielik = [p for p in presets if p["id"] in ("8000", "8006")]
+    assert all("127.0.0.1" in p["base_url"] for p in bielik)
+    assert all("127.0.0.1" not in p["base_url"] for p in bielik)
+
+
+def test_apply_llm_settings_syncs_wake_from_dotenv(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.config.ROOT", tmp_path)
+    (tmp_path / "config.yaml").write_text(
+        yaml.safe_dump({"llm": {"base_url": "http://127.0.0.1:8006/v1"}}),
+        encoding="utf-8",
+    )
+    (tmp_path / ".env").write_text(
+        "LLM_WAKE_URL=http://127.0.0.1:8099\nLLM_WAKE_ENABLED=true\n",
+        encoding="utf-8",
+    )
+    clear_settings_cache()
+    apply_llm_settings(base_url="http://127.0.0.1:8006/v1")
+    clear_settings_cache()
+    settings = get_settings()
+    assert settings.llm_base_url.rstrip("/") == "http://127.0.0.1:8006/v1"
+    assert settings.llm_wake_url == "http://127.0.0.1:8099"
+    assert settings.llm_wake_enabled is True
+
+
 def test_update_yaml_llm_settings_persists_model_and_api_key(tmp_path, monkeypatch):
     monkeypatch.setattr("app.config.ROOT", tmp_path)
     cfg = tmp_path / "config.yaml"

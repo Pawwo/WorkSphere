@@ -296,6 +296,8 @@ def update_yaml_llm_settings(
     base_url: str | None = None,
     model: str | None = None,
     api_key: str | None = None,
+    wake_url: str | None = None,
+    wake_enabled: bool | None = None,
 ) -> None:
     """Persist LLM endpoint fields to config.yaml and refresh settings cache."""
     path = config_yaml_path()
@@ -309,6 +311,10 @@ def update_yaml_llm_settings(
         llm["model"] = model.strip()
     if api_key is not None:
         llm["api_key"] = api_key
+    if wake_url is not None:
+        llm["wake_url"] = wake_url.rstrip("/")
+    if wake_enabled is not None:
+        llm["wake_enabled"] = wake_enabled
     path.write_text(yaml.safe_dump(raw, sort_keys=False, allow_unicode=True), encoding="utf-8")
     clear_settings_cache()
 

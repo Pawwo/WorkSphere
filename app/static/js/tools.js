@@ -88,31 +88,40 @@
   });
 
   document.getElementById("llmSave").onclick = async () => {
-    const presetId = llmPreset.value;
+    const btn = document.getElementById("llmSave");
+    const url = llmCustomUrl.value.trim();
+    if (!url) {
+      log("Podaj URL API (pole URL).");
+      return;
+    }
     const body = {
+      base_url: url,
       model: llmModel.value.trim() || undefined,
       api_key: llmApiKey.value.trim() || undefined,
     };
-    if (presetId === "custom") {
-      body.base_url = llmCustomUrl.value.trim();
-    } else {
-      body.preset_id = presetId;
-      if (!body.model) delete body.model;
+    setButtonLoading(btn, true, "Zapisuję…");
+    try {
+      const data = await apiFetch("/api/tools/llm", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      loadedCfg = data;
+      llmApiKey.value = "";
+      if (data.preset_id && data.preset_id !== "custom") {
+        llmPreset.value = data.preset_id;
+      } else if (data.is_custom) {
+        llmPreset.value = "custom";
+      }
+      setLlmStatus(data);
+      showToast("Zapisano ustawienia LLM");
+      log({ saved: true, base_url: data.base_url, ...data });
+    } catch (e) {
+      log(String(e));
+      llmStatus.textContent = "Zapis nie powiódł się";
+    } finally {
+      setButtonLoading(btn, false);
     }
-    const r = await fetch("/api/tools/llm", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await r.json();
-    if (!r.ok) {
-      log(data);
-      return;
-    }
-    loadedCfg = data;
-    llmApiKey.value = "";
-    setLlmStatus(data);
-    log({ saved: true, ...data });
   };
 
   document.getElementById("llmTest").onclick = async () => {
