@@ -66,7 +66,7 @@ async def _fetch_indeed_via_skill(url: str, *, settings: Settings) -> str:
         stderr=asyncio.subprocess.PIPE,
         env=env,
     )
-    timeout = int(settings.scrapers_portal_timeouts.get("indeed-pl", 180))
+    timeout = int(settings.scrapers_portal_timeouts.get("indeed-pl", 240))
     try:
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
     except asyncio.TimeoutError:

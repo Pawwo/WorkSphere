@@ -111,12 +111,16 @@ function parseJobCards(html: string): JobCard[] {
   return results
 }
 
-async function fetchDescription(jobUrl: string): Promise<string> {
-  const html = await fetchPageContent(jobUrl)
+function extractDescriptionFromHtml(html: string): string {
   const descMatch =
     html.match(/id="jobDescriptionText"[^>]*>([\s\S]*?)<\/div>/i) ??
     html.match(/class="[^"]*jobsearch-JobComponent-description[^"]*"[^>]*>([\s\S]*?)<\/div>/i)
   return descMatch ? stripHtml(descMatch[1]) : ""
+}
+
+async function fetchDescription(jobUrl: string): Promise<string> {
+  const html = await fetchPageContent(jobUrl)
+  return extractDescriptionFromHtml(html)
 }
 
 export async function searchIndeedPl(
@@ -157,15 +161,30 @@ export async function detailIndeedPl(idOrUrl: string): Promise<JobCard> {
     : `https://pl.indeed.com/viewjob?jk=${idOrUrl}`
   const html = await fetchPageContent(url)
   if (isBlocked(html)) throw new Error("Indeed blocked automated access")
+  const description = extractDescriptionFromHtml(html)
   const cards = parseJobCards(html)
   const match = cards[0]
   if (match) {
+    if (!match.description && description) match.description = description
     if (!match.description) {
-      match.description = (await fetchDescription(url)) || match.description
+      match.description = (await fetchDescription(url)) || match.title
     }
     return match
   }
-  const description = await fetchDescription(url)
+  if (description) {
+    return {
+      id: idOrUrl,
+      title: "Position",
+      company: null,
+      location: null,
+      date: null,
+      deadline: null,
+      salary: null,
+      url,
+      description,
+    }
+  }
+  const fallbackDescription = await fetchDescription(url)
   return {
     id: idOrUrl,
     title: idOrUrl,
@@ -175,7 +194,7 @@ export async function detailIndeedPl(idOrUrl: string): Promise<JobCard> {
     deadline: null,
     salary: null,
     url,
-    description: description || null,
+    description: fallbackDescription || null,
   }
 }
 
