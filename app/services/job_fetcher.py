@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 import html
 import json
 import logging
 import re
+from pathlib import Path
 from typing import Optional
 from urllib.parse import unquote, urlparse
 
@@ -22,6 +24,62 @@ logger = logging.getLogger(__name__)
 
 URL_RE = re.compile(r"^https?://", re.I)
 
+_BROWSER_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+)
+
+
+def _is_indeed_url(url: str) -> bool:
+    host = urlparse(url).netloc.lower()
+    return "indeed." in host
+
+
+async def _fetch_indeed_via_skill(url: str, *, settings: Settings) -> str:
+    """
+    Indeed aggressively blocks plain HTTP fetches (403 / security check).
+    Prefer the existing Playwright-based skill when available.
+    """
+    cli: Path = settings.skills_path / "indeed-pl-search" / "cli" / "src" / "cli.ts"
+    if not cli.exists():
+        raise ValueError(
+            "Indeed blokuje pobieranie (403). Skill indeed-pl-search nie jest zainstalowany na serwerze."
+        )
+    cmd = [
+        settings.bun_path,
+        "run",
+        str(cli),
+        "detail",
+        url,
+        "--format",
+        "json",
+    ]
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        cwd=str(settings.skills_path),
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await proc.communicate()
+    if proc.returncode != 0:
+        err = (stderr or b"").decode(errors="replace").strip()
+        # Keep the message actionable for /applications/{id}.
+        raise ValueError(
+            "Indeed blokuje automatyczne pobieranie (403 / captcha). "
+            "Otwórz ofertę w przeglądarce i wklej treść do /apply (pole text), "
+            f"albo wyłącz indeed-pl w portalach. Szczegóły: {err or 'detail failed'}"
+        )
+    text = (stdout or b"").decode(errors="replace").strip()
+    try:
+        data = json.loads(text)
+        # scraper-shared usually returns a JobCard-like object
+        desc = (data.get("description") or "").strip() if isinstance(data, dict) else ""
+        if desc:
+            return desc
+    except Exception:
+        pass
+    # Fallback: treat output as plain text
+    return text
 
 def decode_html_entities(text: Optional[str]) -> Optional[str]:
     if not text:
@@ -548,21 +606,36 @@ async def fetch_job_posting(*, url: Optional[str] = None, text: Optional[str] = 
     seen_override: tuple[Optional[str], Optional[str], Optional[str]] | None = None
     if url and is_http_url(url):
         url = url.strip()
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-            response = await client.get(url, headers={"User-Agent": "WorkSphere/0.1"})
-            response.raise_for_status()
-            html_text = response.text
-            content_type = response.headers.get("content-type", "")
-            if "html" in content_type:
-                raw = _strip_html(html_text)
-                if "linkedin" in url.lower():
-                    raw = extract_linkedin_job_body(raw)
-                    raw = _enrich_linkedin_raw_text(
-                        raw, html_text=html_text, url=url, settings=settings
-                    )
-            else:
-                raw = response.text
-        source = "url"
+        if _is_indeed_url(url):
+            raw = await _fetch_indeed_via_skill(url, settings=settings)
+            source = "url"
+            html_text = ""
+        else:
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+                try:
+                    response = await client.get(url, headers={"User-Agent": _BROWSER_UA})
+                    response.raise_for_status()
+                except httpx.HTTPStatusError as exc:
+                    code = exc.response.status_code if exc.response else None
+                    if code == 403 and _is_indeed_url(url):
+                        raw = await _fetch_indeed_via_skill(url, settings=settings)
+                        source = "url"
+                        html_text = ""
+                    else:
+                        raise
+                else:
+                    html_text = response.text
+                    content_type = response.headers.get("content-type", "")
+                    if "html" in content_type:
+                        raw = _strip_html(html_text)
+                        if "linkedin" in url.lower():
+                            raw = extract_linkedin_job_body(raw)
+                            raw = _enrich_linkedin_raw_text(
+                                raw, html_text=html_text, url=url, settings=settings
+                            )
+                    else:
+                        raw = response.text
+                    source = "url"
     elif text and text.strip():
         raw = text.strip()
         url = None
