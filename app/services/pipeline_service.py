@@ -353,7 +353,7 @@ class PipelineService:
             if not url:
                 raise ValueError("Brak URL — parse retry wymaga url w aplikacji")
             ctx = PipelineContext(
-                request=ApplyRequest(url=url, proceed=True, compile_pdf=compile_pdf),
+                request=ApplyRequest(url=url, proceed=False, compile_pdf=compile_pdf),
                 application_id=application_id,
                 run_id=row["run_id"],
                 task_id=row.get("task_id"),
