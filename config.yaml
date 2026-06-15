@@ -1,3 +1,110 @@
 llm:
-  base_url: https://api.example.com/v1
-  model: x
+  base_url: http://127.0.0.1:8006/v1
+  model: your-model-name
+  model_file: your-model-name
+  api_key: unused
+  max_tokens: 512
+  context_size: 4096
+  temperature: 0.1
+  timeout_seconds: 180
+  concurrency: 1
+  inference_probe_enabled: true
+  inference_probe_cache_seconds: 90
+search:
+  searxng_base_url: http://127.0.0.1:8888
+  default_language: pl
+  default_categories: general
+  timeout_seconds: 15
+scrapers:
+  skills_dir: .agents/skills
+  default_days: 2
+  default_limit: 20
+  max_age_hours: 48
+  strict_freshness: true
+  parallel_limit: 4
+  portal_timeout_seconds: 90
+  portal_timeouts:
+    indeed-pl: 180
+    linkedin-pl: 150
+    nofluffjobs: 120
+    justjoin: 120
+    rocketjobs: 60
+    praca-pl: 30
+  retry_on_timeout: 1
+  batch_query_parallelism: 6
+  default_portal_profile: full
+  parallel_tier_groups: true
+  smart_portal_routing: true
+  linkedin_batch_subqueries: 3
+  batch_fit_mode: llm
+  llm_fit_limit: 40
+  highlights_max_per_run: 10
+  linkedin_detail_limit: 0
+  linkedin_pages: 1
+  disabled_portals:
+  - indeed-pl
+  portal_strict_freshness:
+    praca-pl: true
+    justjoin: false
+    rocketjobs: false
+    nofluffjobs: false
+    pracuj: true
+    theprotocol: true
+    linkedin-pl: true
+  portal_profiles:
+    executive:
+    - pracuj
+    - praca-pl
+    full:
+    - pracuj
+    - praca-pl
+    - justjoin
+    - nofluffjobs
+    - theprotocol
+    - rocketjobs
+    - linkedin-pl
+    it_dev:
+    - pracuj
+    - praca-pl
+    - justjoin
+    - nofluffjobs
+    - theprotocol
+    - rocketjobs
+    broad: []
+  portals:
+    primary:
+    - pracuj-search
+    - praca-pl-search
+    broad_extra:
+    - linkedin-pl-search
+salary:
+  b2b_monthly_threshold_pln: 25000
+  benchmarks_file: data/salary_benchmarks_pl.json
+paths:
+  data_dir: ./data
+  profile_dir: ./data/profile
+  job_scraper_dir: ./data/job_scraper
+  upskill_dir: ./data/upskill
+  cv_dir: ./cv
+  cover_letters_dir: ./cover_letters
+server:
+  host: 0.0.0.0
+  port: 8080
+  cors_origins:
+  - http://localhost:5173
+  - http://127.0.0.1:5173
+ats:
+  min_keyword_coverage: 0.7
+  bold_keywords_in_bullets: true
+  truth_guard_strict: true
+  max_experience_llm_batches: 2
+  enrich_pm_roles: true
+  summary_min_lead_keywords: 2
+pipeline:
+  fast_draft: true
+  interview_prep_enabled: true
+  stale_task_seconds: 300
+  llm_warm_cache_seconds: 600
+  max_experience_llm_batches: 1
+  llm_warm_fast_trust: true
+  parallel_cover: true
