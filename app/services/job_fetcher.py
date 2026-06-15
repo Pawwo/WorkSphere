@@ -4,6 +4,7 @@ import asyncio
 import html
 import json
 import logging
+import os
 import re
 from pathlib import Path
 from typing import Optional
@@ -54,13 +55,26 @@ async def _fetch_indeed_via_skill(url: str, *, settings: Settings) -> str:
         "--format",
         "json",
     ]
+    env = os.environ.copy()
+    browser_path = env.get("INDEED_BROWSER_PATH", "").strip()
+    if browser_path:
+        env["INDEED_BROWSER_PATH"] = browser_path
     proc = await asyncio.create_subprocess_exec(
         *cmd,
         cwd=str(settings.skills_path),
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
+        env=env,
     )
-    stdout, stderr = await proc.communicate()
+    timeout = int(settings.scrapers_portal_timeouts.get("indeed-pl", 180))
+    try:
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+    except asyncio.TimeoutError:
+        proc.kill()
+        await proc.communicate()
+        raise ValueError(
+            f"Indeed: timeout po {timeout}s. Spróbuj ponownie lub wklej treść oferty ręcznie w /apply."
+        ) from None
     if proc.returncode != 0:
         err = (stderr or b"").decode(errors="replace").strip()
         # Keep the message actionable for /applications/{id}.

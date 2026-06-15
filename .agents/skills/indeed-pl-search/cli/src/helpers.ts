@@ -160,7 +160,9 @@ export async function detailIndeedPl(idOrUrl: string): Promise<JobCard> {
   const cards = parseJobCards(html)
   const match = cards[0]
   if (match) {
-    match.description = (await fetchDescription(url)) || match.description
+    if (!match.description) {
+      match.description = (await fetchDescription(url)) || match.description
+    }
     return match
   }
   const description = await fetchDescription(url)

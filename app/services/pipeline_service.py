@@ -386,7 +386,18 @@ class PipelineService:
 
         if stage == "parse":
             await self.stages.stage_parse(ctx)
-            await self.stages._finalize(ctx)
+            await self.stages.stage_evaluate(ctx)
+            await self.stages.stage_proceed_gate(ctx)
+            result = {
+                "parsed": ctx.parsed.model_dump() if ctx.parsed else {},
+                "evaluation": ctx.evaluation.model_dump() if ctx.evaluation else {},
+            }
+            await self.db.update_apply_run(
+                ctx.run_id,
+                stage="evaluated",
+                status="completed",
+                result_json=json.dumps(result, ensure_ascii=False),
+            )
         elif stage == "evaluate":
             await self.stages.stage_evaluate(ctx)
             await self.stages._finalize(ctx)
