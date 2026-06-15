@@ -346,19 +346,33 @@ class PipelineService:
         run = await self.db.get_apply_run(row["run_id"])
         result = json.loads(run["result_json"]) if run and run.get("result_json") else {}
         parsed_data = result.get("parsed") or self._load_stage_json(row, "parsed.json")
-        if not parsed_data:
-            raise ValueError("Brak parsed.json")
-        ctx = PipelineContext(
-            request=ApplyRequest(url=row.get("url"), proceed=True, compile_pdf=compile_pdf),
-            application_id=application_id,
-            run_id=row["run_id"],
-            company_slug=row.get("company_slug") or slugify(parsed_data.get("company", "")),
-            role_slug=slugify(parsed_data.get("role", "")),
-            application_dir=row.get("application_dir") or "",
-            parsed=JobParsed(**parsed_data),
-            evaluation=FitEvaluation(**result["evaluation"]) if result.get("evaluation") else None,
-            bundle=self.apply._read_profile_bundle(),
-        )
+
+        # Parse retry should be able to run from URL even if previous parse never produced parsed.json.
+        if stage == "parse":
+            url = row.get("url")
+            if not url:
+                raise ValueError("Brak URL — parse retry wymaga url w aplikacji")
+            ctx = PipelineContext(
+                request=ApplyRequest(url=url, proceed=True, compile_pdf=compile_pdf),
+                application_id=application_id,
+                run_id=row["run_id"],
+                task_id=row.get("task_id"),
+                bundle=self.apply._read_profile_bundle(),
+            )
+        else:
+            if not parsed_data:
+                raise ValueError("Brak parsed.json")
+            ctx = PipelineContext(
+                request=ApplyRequest(url=row.get("url"), proceed=True, compile_pdf=compile_pdf),
+                application_id=application_id,
+                run_id=row["run_id"],
+                company_slug=row.get("company_slug") or slugify(parsed_data.get("company", "")),
+                role_slug=slugify(parsed_data.get("role", "")),
+                application_dir=row.get("application_dir") or "",
+                parsed=JobParsed(**parsed_data),
+                evaluation=FitEvaluation(**result["evaluation"]) if result.get("evaluation") else None,
+                bundle=self.apply._read_profile_bundle(),
+            )
         reviewer_data = self._load_stage_json(row, "reviewer.json")
         if reviewer_data:
             ctx.reviewer = ReviewerResult(**reviewer_data)
@@ -371,10 +385,6 @@ class PipelineService:
             ctx.evaluation = FitEvaluation(**eval_data)
 
         if stage == "parse":
-            url = row.get("url")
-            if not url:
-                raise ValueError("Brak URL — parse retry wymaga url w aplikacji")
-            ctx.request = ApplyRequest(url=url, proceed=True, compile_pdf=compile_pdf)
             await self.stages.stage_parse(ctx)
             await self.stages._finalize(ctx)
         elif stage == "evaluate":
