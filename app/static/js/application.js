@@ -55,27 +55,35 @@
     const el = document.getElementById("preflightBanner");
     if (!el) return;
     const msgs = [];
+    const pipelineActive = data && isPipelineActive(data);
+    if (pipelineActive) {
+      el.style.display = "none";
+      el.innerHTML = "";
+      return;
+    }
     if (data && (data.pipeline_status === "waiting" || data.pipeline_stage === "proceed")) {
       msgs.push("Ocena gotowa — kliknij „Generuj CV i list”, aby przygotować dokumenty.");
     }
     if (preflight) {
       if (!preflight.llm || !preflight.ready_for_draft) {
-        const st = preflight.llm && preflight.llm.status;
-        if (st === "idle" || st === "starting") {
-          const wake = preflight.wake_url ? preflight.wake_url.replace(/\/$/, "") + "/wake" : "http://127.0.0.1:8099/wake";
-          msgs.push("LLM budzi się — odśwież za chwilę lub: curl -X POST " + wake);
-        } else {
-          msgs.push(
-            "LLM niedostępny (sprawdź local GPU :8006 / :8099) — bez LLM zostanie użyty baseline CV."
-          );
-        }
+        msgs.push(
+          "LLM niedostępny — ustaw LLM_BASE_URL w .env lub w Narzędziach. Bez LLM zostanie użyty baseline CV."
+        );
       }
-      if (!preflight.ready_for_pdf) {
+      const htmlPdf = preflight.cv_renderer === "html";
+      if (!preflight.ready_for_pdf && !htmlPdf) {
         msgs.push("Brak lualatex/xelatex — uruchom: bash scripts/install_latex.sh");
+      } else if (!preflight.ready_for_pdf && htmlPdf) {
+        msgs.push("Brak Playwright/Chromium — PDF HTML wymaga przeglądarki headless.");
       }
     }
     if (data && data.cv_file && !data.pdf_cv) {
-      msgs.push("Pliki .tex gotowe — PDF wymaga LaTeX lub ponów kompilację.");
+      const ext = (data.cv_file || "").toLowerCase();
+      if (ext.endsWith(".tex")) {
+        msgs.push("Pliki .tex gotowe — PDF wymaga LaTeX lub ponów kompilację.");
+      } else if (ext.endsWith(".html")) {
+        msgs.push("Pliki HTML gotowe — PDF wymaga kompilacji (Playwright).");
+      }
     }
     if (!msgs.length) {
       el.style.display = "none";

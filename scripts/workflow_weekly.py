@@ -56,21 +56,10 @@ def run_triage() -> None:
     subprocess.run([sys.executable, str(ROOT / "scripts" / "workflow_triage.py")], check=True)
 
 
-def run_pi_compare() -> None:
-    if os.environ.get("WORKFLOW_SKIP_PI_COMPARE") == "1":
-        return
-    print("\n=== Pi coverage compare ===")
-    subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / "compare_remote_offers.py"), "--delta", "--sync-pi-metadata"],
-        check=False,
-    )
-
-
 async def main() -> None:
     if os.environ.get("WORKFLOW_SKIP_SCRAPE") != "1":
         await run_scrape()
     run_triage()
-    run_pi_compare()
     print("\n=== Następne kroki ===")
     print("1. python3 scripts/workflow_evaluate.py   # ocena top 10")
     print("2. python3 scripts/workflow_apply.py        # apply top 3")

@@ -19,10 +19,11 @@ async def test_agent_answer_flow(tmp_path):
     svc = AgentService(settings)
     answer_json = '{"type":"answer","content":"Masz 3 oferty w inbox."}'
 
-    with patch.object(svc.llm, "chat_complete", new_callable=AsyncMock) as mock_llm:
-        mock_llm.return_value = answer_json
-        with patch.object(svc, "_maybe_extract_memory", new_callable=AsyncMock):
-            result = await svc.handle_message("Ile ofert mam?")
+    with patch.object(svc, "_ensure_llm_ready", AsyncMock(return_value={"ok": True})):
+        with patch.object(svc.llm, "chat_complete", new_callable=AsyncMock) as mock_llm:
+            mock_llm.return_value = answer_json
+            with patch.object(svc, "_maybe_extract_memory", new_callable=AsyncMock):
+                result = await svc.handle_message("Ile ofert mam?")
 
     assert result["ok"] is True
     assert "inbox" in result["content"].lower()
@@ -39,10 +40,11 @@ async def test_agent_tool_then_answer(tmp_path):
     tool_json = '{"type":"tool_call","tool":"get_inbox_counts","args":{}}'
     answer_json = '{"type":"answer","content":"Podsumowanie gotowe."}'
 
-    with patch.object(svc.llm, "chat_complete", new_callable=AsyncMock) as mock_llm:
-        mock_llm.side_effect = [tool_json, answer_json]
-        with patch.object(svc, "_maybe_extract_memory", new_callable=AsyncMock):
-            result = await svc.handle_message("Pokaż statystyki")
+    with patch.object(svc, "_ensure_llm_ready", AsyncMock(return_value={"ok": True})):
+        with patch.object(svc.llm, "chat_complete", new_callable=AsyncMock) as mock_llm:
+            mock_llm.side_effect = [tool_json, answer_json]
+            with patch.object(svc, "_maybe_extract_memory", new_callable=AsyncMock):
+                result = await svc.handle_message("Pokaż statystyki")
 
     assert result["ok"] is True
     assert result.get("tool_runs")

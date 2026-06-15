@@ -21,7 +21,6 @@ from app.models.jobs import (
     SeenJobEntry,
 )
 from app.services.fit_utils import sort_by_fit
-from app.services.llm_power_service import LlmPowerService
 from app.services.highlights_service import enrich_highlights_for_new_jobs
 from app.services.salary_service import SalaryService
 from app.services.scrape.batch_context import BatchContext
@@ -321,11 +320,10 @@ class ScrapeService:
             )
 
         use_llm_fit = self.settings.scrapers_batch_fit_mode != "fast"
-        power = LlmPowerService(self.settings)
-        if use_llm_fit and power.enabled:
-            if on_progress:
-                await on_progress("init", 3, "Uruchamiam LLM na local GPU…")
-            await power.wake_and_prepare()
+        if use_llm_fit and on_progress:
+            await on_progress("init", 3, "Sprawdzam dostępność LLM…")
+        if use_llm_fit:
+            await self.llm.wait_until_ready(probe=True)
 
         llm_ok = await self.llm.is_ready(probe=True)
         batch_ctx = BatchContext(self.settings)
@@ -455,10 +453,8 @@ class ScrapeService:
             await on_progress("init", 5, f"Zapytanie: {query}")
 
         use_llm_fit = not is_batch or self.settings.scrapers_batch_fit_mode != "fast"
-        if use_llm_fit and not is_batch and LlmPowerService(self.settings).enabled:
-            if on_progress:
-                await on_progress("init", 8, "Uruchamiam LLM na local GPU…")
-            await LlmPowerService(self.settings).wake()
+        if use_llm_fit and not is_batch and on_progress:
+            await on_progress("init", 8, "Sprawdzam dostępność LLM…")
 
         profile_excerpt = read_profile_excerpt(self.settings)
         if llm_ok is None:

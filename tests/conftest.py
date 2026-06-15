@@ -18,7 +18,7 @@ WOLTERS_APP_DIR = FIXTURES_DIR / "applications" / "wolters_kluwer_polska_sp_z_oo
 def pytest_configure(config):
     config.addinivalue_line(
         "markers",
-        "integration: tests requiring local GPU LLM, SearXNG, or live scrapers",
+        "integration: tests requiring live LLM, SearXNG, or live scrapers",
     )
 
 

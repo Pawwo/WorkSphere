@@ -72,7 +72,7 @@ async def test_scrape_batch_post_hook_no_asyncio_run(monkeypatch):
 
     with (
         patch.object(svc.llm, "is_ready", AsyncMock(return_value=True)),
-        patch("app.services.scrape_service.LlmPowerService") as power_cls,
+        patch.object(svc.llm, "wait_until_ready", AsyncMock(return_value={"ok": True})),
         patch("app.services.scrape_service.BatchContext") as batch_ctx_cls,
         patch(
             "app.services.post_batch_service.run_post_batch_async",
@@ -81,7 +81,6 @@ async def test_scrape_batch_post_hook_no_asyncio_run(monkeypatch):
     ):
         batch_ctx_cls.return_value.flush = AsyncMock()
         batch_ctx_cls.return_value.seen = {}
-        power_cls.return_value.enabled = False
 
         post_batch.return_value = {"triage": {"skipped": 0, "priority": 0, "review": 0, "top10": []}}
 

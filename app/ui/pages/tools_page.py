@@ -5,7 +5,7 @@ TOOLS_BODY = """
   <h1>Narzędzia</h1>
   <section class="o_section_box">
     <h2>LLM — endpoint</h2>
-    <p class="o_page_intro">Serwer OpenAI-compatible (Bielik lokalnie, OpenRouter lub własny). Zapis trafia do <code>config.yaml</code>. local GPU wake działa tylko dla lokalnego Bielika (:8000/:8006).</p>
+    <p class="o_page_intro">Serwer OpenAI-compatible (llama-server, Ollama, OpenRouter lub własny URL). Zapis trafia do <code>config.yaml</code>.</p>
     <div class="o_form_group">
       <label class="o_form_label" for="llmPreset">Serwer LLM</label>
       <select id="llmPreset">
@@ -18,7 +18,7 @@ TOOLS_BODY = """
     </div>
     <div class="o_form_group">
       <label class="o_form_label" for="llmModel">Model</label>
-      <input id="llmModel" type="text" placeholder="minitron-Bielik-7B-v3.0-Instruct-GGUF.Q4_K_M.gguf" />
+      <input id="llmModel" type="text" placeholder="your-model-name" />
     </div>
     <div class="o_form_group">
       <label class="o_form_label" for="llmApiKey">API Key</label>

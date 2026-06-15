@@ -64,23 +64,70 @@ install_searxng() {
   bash deploy/searxng/setup.sh
 }
 
-write_env() {
-  if [[ -f .env ]]; then
-    echo ".env already exists — leaving unchanged"
-    return 0
+set_env_var() {
+  local key="$1"
+  local value="$2"
+  local file="$3"
+  if grep -q "^${key}=" "$file" 2>/dev/null; then
+    sed -i "s|^${key}=.*|${key}=${value}|" "$file"
+  else
+    echo "${key}=${value}" >>"$file"
   fi
-  cp .env.example .env
-  # Ensure local defaults (no hard-coded LAN hosts)
-  sed -i \
-    -e 's|^LLM_BASE_URL=.*|LLM_BASE_URL=http://127.0.0.1:8006/v1|' \
-    -e 's|^LLM_WAKE_ENABLED=.*|LLM_WAKE_ENABLED=false|' \
-    -e 's|^SEARXNG_BASE_URL=.*|SEARXNG_BASE_URL=http://127.0.0.1:8888|' \
-    -e 's|^BUN_PATH=.*|BUN_PATH='"${BUN_INSTALL:-$HOME/.bun}"'/bin/bun|' \
-    .env 2>/dev/null || true
-  if ! grep -q '^CV_RENDERER=' .env 2>/dev/null; then
-    echo "CV_RENDERER=html" >> .env
+}
+
+remove_env_var() {
+  local key="$1"
+  local file="$2"
+  if grep -q "^${key}=" "$file" 2>/dev/null; then
+    sed -i "/^${key}=/d" "$file"
   fi
-  echo "Created .env from .env.example"
+}
+
+repair_env() {
+  local repairs=0
+  if [[ ! -f .env ]]; then
+    cp .env.example .env
+    echo "Created .env from .env.example"
+    repairs=$((repairs + 1))
+  fi
+
+  local llm_url searx_url cv_renderer bun_path
+  llm_url="$(grep '^LLM_BASE_URL=' .env 2>/dev/null | cut -d= -f2- || true)"
+  searx_url="$(grep '^SEARXNG_BASE_URL=' .env 2>/dev/null | cut -d= -f2- || true)"
+  cv_renderer="$(grep '^CV_RENDERER=' .env 2>/dev/null | cut -d= -f2- || true)"
+  bun_path="$(grep '^BUN_PATH=' .env 2>/dev/null | cut -d= -f2- || true)"
+
+  if [[ -z "$llm_url" || "$llm_url" == *192.168.* ]]; then
+    set_env_var "LLM_BASE_URL" "http://127.0.0.1:8006/v1" .env
+    echo "Repaired LLM_BASE_URL → http://127.0.0.1:8006/v1"
+    repairs=$((repairs + 1))
+  fi
+  if [[ -z "$searx_url" || "$searx_url" == *192.168.* ]]; then
+    set_env_var "SEARXNG_BASE_URL" "http://127.0.0.1:8888" .env
+    echo "Repaired SEARXNG_BASE_URL → http://127.0.0.1:8888"
+    repairs=$((repairs + 1))
+  fi
+  if [[ -z "$cv_renderer" || "$cv_renderer" == "latex" ]]; then
+    set_env_var "CV_RENDERER" "html" .env
+    echo "Repaired CV_RENDERER → html"
+    repairs=$((repairs + 1))
+  fi
+  if grep -q '^LLM_WAKE_' .env 2>/dev/null; then
+    sed -i '/^LLM_WAKE_/d' .env
+    echo "Removed legacy LLM_WAKE_* entries"
+    repairs=$((repairs + 1))
+  fi
+  if [[ -z "$bun_path" && -x "${BUN_INSTALL:-$HOME/.bun}/bin/bun" ]]; then
+    set_env_var "BUN_PATH" "${BUN_INSTALL:-$HOME/.bun}/bin/bun" .env
+    echo "Set BUN_PATH"
+    repairs=$((repairs + 1))
+  fi
+
+  if [[ $repairs -eq 0 ]]; then
+    echo ".env OK"
+  else
+    echo "Repaired $repairs .env issue(s)"
+  fi
 }
 
 install_apt_deps
@@ -102,7 +149,7 @@ export PATH="${BUN_INSTALL:-$HOME/.bun}/bin:$PATH"
 echo "=== Playwright (HTML CV → PDF) ==="
 bash scripts/install_playwright.sh
 
-write_env
+repair_env
 install_searxng
 
 echo ""

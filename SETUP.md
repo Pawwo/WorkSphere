@@ -80,29 +80,7 @@ LLM_API_KEY=unused
 
 Ustaw `LLM_MODEL` na identyfikator modelu używanego przez dany endpoint.
 
-### Opcjonalnie: wake / idle (lokalny GPU)
-
-Jeśli masz własny manager usypiania LLM (np. skrypt wake/sleep), ustaw:
-
-```env
-LLM_WAKE_URL=http://127.0.0.1:8099
-LLM_WAKE_ENABLED=true
-```
-
-Domyślnie po instalacji: `LLM_WAKE_ENABLED=false`.
-
-### Przykładowa wydajność (lokalny LLM na GPU)
-
-Poniższe wartości są **przykładem** z setupu referencyjnego (AMD local GPU, Vulkan, Minitron-Bielik-7B Q4_K_M, llama.cpp). Nie są wymagane do działania aplikacji.
-
-| Metryka | Przykład |
-|---------|----------|
-| Prompt processing (pp128) | ~208 tok/s |
-| Token generation (tg128) | ~42 tok/s |
-| `quick_fit` ×40 | ~35 s |
-| Pełny apply | ~2–4 min |
-
-Sugerowane ustawienia w `config.yaml` przy jednym workerze LLM:
+### Wydajność lokalnego LLM
 
 | Klucz | Wartość |
 |-------|---------|
@@ -110,8 +88,6 @@ Sugerowane ustawienia w `config.yaml` przy jednym workerze LLM:
 | `llm.concurrency` | 1 |
 | `scrapers.llm_fit_limit` | 40 |
 | `scrapers.highlights_max_per_run` | 10 |
-
-Szczegóły tuningu GPU: [docs/local-llm-llm-power-baseline.md](docs/local-llm-llm-power-baseline.md).
 
 ## 5. Uruchomienie
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -14,7 +15,6 @@ from app.models.jobs import SeenJobUpdate
 from app.models.pipeline import PIPELINE_STAGES, STAGE_PROGRESS
 from app.llm.client import BielikClient
 from app.services.apply_service import ApplyService, slugify
-from app.services.llm_power_service import LlmPowerService
 from app.services.pipeline.apply_queue import llm_pipeline_slot
 from app.services.pipeline.context import PipelineContext
 from app.services.pipeline.stages import PipelineStages
@@ -27,6 +27,12 @@ logger = logging.getLogger(__name__)
 ProgressCallback = Optional[Callable]
 
 _llm_warm_monotonic: float = 0.0
+
+
+def mark_llm_warm() -> None:
+    """Record that inference was used recently (evaluate/draft); skips redundant wake."""
+    global _llm_warm_monotonic
+    _llm_warm_monotonic = time.monotonic()
 
 
 class PipelineService:
@@ -85,36 +91,33 @@ class PipelineService:
         await self.db.update_application(ctx.application_id, **fields)
         self._save_manifest(ctx, stage, status)
 
-    async def _wake_llm(self) -> dict:
-        """Wake local GPU and wait until Bielik models + probe are ready."""
+    async def _wake_llm(self, *, trust_recent: bool = False) -> dict:
+        """Wait until LLM models + probe are ready."""
         global _llm_warm_monotonic
         cache_sec = max(30, int(getattr(self.settings, "pipeline_llm_warm_cache_seconds", 300) or 300))
-        if time.monotonic() - _llm_warm_monotonic < cache_sec:
+        age = time.monotonic() - _llm_warm_monotonic
+        fast_trust = trust_recent or getattr(self.settings, "pipeline_llm_warm_fast_trust", True)
+        if age < cache_sec:
+            if fast_trust:
+                logger.debug("LLM warm cache trust hit (%.0fs / %ss)", age, cache_sec)
+                return {
+                    "ok": True,
+                    "status": "ready",
+                    "inference_ok": True,
+                    "warm_cache": "trust",
+                }
             client = BielikClient(self.settings)
             hc = await client.healthcheck_extended(force_probe=False)
             if hc.get("ok") and hc.get("inference_ok") is not False:
-                logger.debug("LLM warm cache hit — skipping wake")
+                logger.debug("LLM warm cache hit — skipping probe")
                 return hc
-        power = LlmPowerService(self.settings)
-        if not power.enabled:
-            client = BielikClient(self.settings)
-            hc = await client.wait_until_ready(probe=True, force_probe=True)
-            if hc.get("ok"):
-                _llm_warm_monotonic = time.monotonic()
-                logger.info("LLM ready at %s", self.settings.llm_base_url)
-            else:
-                logger.warning("LLM not ready: %s", hc.get("error") or hc.get("status"))
-            return hc
-        hc = await power.wake_and_prepare()
+        client = BielikClient(self.settings)
+        hc = await client.wait_until_ready(probe=True, force_probe=True)
         if hc.get("ok"):
             _llm_warm_monotonic = time.monotonic()
-            logger.info("LLM wake+probe OK (%s)", self.settings.llm_wake_url)
+            logger.info("LLM ready at %s", self.settings.llm_base_url)
         else:
-            logger.warning(
-                "LLM wake+probe failed (%s): %s",
-                self.settings.llm_wake_url,
-                hc.get("error") or hc.get("status"),
-            )
+            logger.warning("LLM not ready: %s", hc.get("error") or hc.get("status"))
         return hc
 
     async def _ensure_llm_health(self, ctx: PipelineContext) -> dict:
@@ -217,10 +220,11 @@ class PipelineService:
         )
 
     async def run_sync(self, request: ApplyRequest) -> ApplyResponse:
-        await self._wake_llm()
+        wake_task = asyncio.create_task(self._wake_llm())
         ctx = await self.create_application(request)
-        await self._ensure_llm_health(ctx)
         await self.stages.stage_parse(ctx)
+        await wake_task
+        await self._ensure_llm_health(ctx)
         await self.stages.stage_evaluate(ctx)
         if not await self.stages.stage_proceed_gate(ctx):
             return self.to_response(ctx)
@@ -235,14 +239,15 @@ class PipelineService:
         *,
         ctx: Optional[PipelineContext] = None,
     ) -> dict:
-        await self._emit(on_progress, "parse", "Budzenie LLM…", progress=5)
-        await self._wake_llm()
+        wake_task = asyncio.create_task(self._wake_llm())
         if ctx is None:
             ctx = await self.create_application(request, task_id=task_id)
+        await self._emit(on_progress, "parse", "Parsowanie ogłoszenia…", progress=5)
+        await self.stages.stage_parse(ctx, on_progress)
+        await wake_task
         await self._ensure_llm_health(ctx)
         await self.db.update_application(ctx.application_id, task_id=task_id)
         try:
-            await self.stages.stage_parse(ctx, on_progress)
             await self.stages.stage_evaluate(ctx, on_progress)
             if not await self.stages.stage_proceed_gate(ctx, on_progress):
                 return {
@@ -323,8 +328,8 @@ class PipelineService:
         )
         if ctx.parsed:
             ctx.role_slug = slugify(ctx.parsed.role)
-        await self._emit(on_progress, "parse", "Budzenie LLM…", progress=5)
-        await self._wake_llm()
+        await self._emit(on_progress, "draft", "Generowanie CV i listu…", progress=5)
+        await self._wake_llm(trust_recent=True)
         await self._ensure_llm_health(ctx)
         await self._set_stage(ctx, "proceed", "done")
         await self._run_post_proceed(ctx, on_progress)

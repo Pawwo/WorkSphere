@@ -50,11 +50,28 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.services.pipeline.apply_queue import recover_stale_apply_tasks, stale_task_watchdog_loop
+    from app.llm.client import BielikClient
+    from app.search.searxng_client import SearXNGClient
 
     settings = get_settings()
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.job_scraper_dir.mkdir(parents=True, exist_ok=True)
     logger.info("WorkSphere started — data dir: %s", settings.data_dir)
+
+    llm = await BielikClient(settings).healthcheck_extended()
+    if not llm.get("ok"):
+        logger.warning(
+            "LLM unreachable at %s — %s (see SETUP.md)",
+            settings.llm_base_url,
+            llm.get("error") or llm.get("status") or "connection failed",
+        )
+    searxng = await SearXNGClient(settings).healthcheck()
+    if not searxng.get("ok"):
+        logger.warning(
+            "SearXNG unreachable at %s — expand/upskill degraded (deploy/searxng/setup.sh)",
+            settings.searxng_base_url,
+        )
+
     n = await recover_stale_apply_tasks(settings)
     if n:
         logger.info("Recovered %s stale apply task(s) on startup", n)
@@ -71,7 +88,7 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
         title="WorkSphere",
-        description="Standalone job search assistant powered by Bielik-11B and Polish portal scrapers",
+        description="Standalone job search assistant with Polish portal scrapers",
         version="1.0.0",
         lifespan=lifespan,
     )

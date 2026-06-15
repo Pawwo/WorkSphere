@@ -35,9 +35,8 @@ def test_tools_llm_settings():
     assert "presets" in data
     assert "model" in data
     assert "api_key_set" in data
-    assert "is_local_bielik" in data
     preset_ids = {p["id"] for p in data["presets"]}
-    assert "8006" in preset_ids
+    assert "local" in preset_ids
     assert "openrouter" in preset_ids
 
 

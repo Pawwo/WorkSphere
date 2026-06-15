@@ -19,13 +19,8 @@ class Settings(BaseSettings):
     )
 
     llm_base_url: str = Field(default="http://127.0.0.1:8006/v1", alias="LLM_BASE_URL")
-    llm_model: str = Field(
-        default="minitron-Bielik-7B-v3.0-Instruct-GGUF.Q4_K_M.gguf", alias="LLM_MODEL"
-    )
-    llm_model_file: str = Field(
-        default="minitron-Bielik-7B-v3.0-Instruct-GGUF.Q4_K_M.gguf",
-        alias="LLM_MODEL_FILE",
-    )
+    llm_model: str = Field(default="your-model-name", alias="LLM_MODEL")
+    llm_model_file: str = Field(default="your-model-name", alias="LLM_MODEL_FILE")
     llm_api_key: str = Field(default="unused", alias="LLM_API_KEY")
     llm_max_tokens: int = Field(default=512, alias="LLM_MAX_TOKENS")
     llm_context_size: int = Field(default=4096, alias="LLM_CONTEXT_SIZE")
@@ -36,9 +31,6 @@ class Settings(BaseSettings):
     llm_inference_probe_cache_seconds: int = Field(
         default=90, alias="LLM_INFERENCE_PROBE_CACHE_SECONDS"
     )
-    llm_wake_url: str = Field(default="", alias="LLM_WAKE_URL")
-    llm_wake_enabled: bool = Field(default=False, alias="LLM_WAKE_ENABLED")
-    llm_wake_timeout_seconds: int = Field(default=90, alias="LLM_WAKE_TIMEOUT_SECONDS")
     scrape_llm_fit_limit: int = Field(default=40, alias="SCRAPE_LLM_FIT_LIMIT")
     scrape_highlights_max_per_run: int = Field(default=10, alias="SCRAPE_HIGHLIGHTS_MAX_PER_RUN")
 
@@ -79,7 +71,7 @@ class Settings(BaseSettings):
     salary_benchmarks_file: str = "data/salary_benchmarks_pl.json"
 
     latex_bin_dir: Optional[Path] = Field(default=None, alias="LATEX_BIN_DIR")
-    cv_renderer: str = Field(default="latex", alias="CV_RENDERER")
+    cv_renderer: str = Field(default="html", alias="CV_RENDERER")
 
     ats_min_keyword_coverage: float = 0.70
     ats_bold_keywords_in_bullets: bool = True
@@ -96,6 +88,10 @@ class Settings(BaseSettings):
     pipeline_llm_warm_cache_seconds: int = Field(
         default=300, alias="PIPELINE_LLM_WARM_CACHE_SECONDS"
     )
+    pipeline_llm_warm_fast_trust: bool = Field(
+        default=True, alias="PIPELINE_LLM_WARM_FAST_TRUST"
+    )
+    pipeline_parallel_cover: bool = Field(default=True, alias="PIPELINE_PARALLEL_COVER")
 
     @property
     def profile_dir(self) -> Path:
@@ -138,6 +134,8 @@ def _merge_yaml_into_settings(settings: Settings) -> Settings:
         updates["llm_base_url"] = llm["base_url"]
     if llm.get("model"):
         updates["llm_model"] = llm["model"]
+    if llm.get("model_file"):
+        updates["llm_model_file"] = llm["model_file"]
     if llm.get("api_key"):
         updates["llm_api_key"] = llm["api_key"]
     if llm.get("max_tokens"):
@@ -150,12 +148,6 @@ def _merge_yaml_into_settings(settings: Settings) -> Settings:
         updates["llm_timeout_seconds"] = llm["timeout_seconds"]
     if llm.get("concurrency") is not None:
         updates["llm_concurrency"] = int(llm["concurrency"])
-    if llm.get("wake_url"):
-        updates["llm_wake_url"] = llm["wake_url"]
-    if llm.get("wake_enabled") is not None:
-        updates["llm_wake_enabled"] = bool(llm["wake_enabled"])
-    if llm.get("wake_timeout_seconds"):
-        updates["llm_wake_timeout_seconds"] = int(llm["wake_timeout_seconds"])
     if llm.get("inference_probe_enabled") is not None:
         updates["llm_inference_probe_enabled"] = bool(llm["inference_probe_enabled"])
     if llm.get("inference_probe_cache_seconds"):
@@ -251,10 +243,15 @@ def _merge_yaml_into_settings(settings: Settings) -> Settings:
         updates["pipeline_stale_task_seconds"] = int(pipeline["stale_task_seconds"])
     if pipeline.get("llm_warm_cache_seconds") is not None:
         updates["pipeline_llm_warm_cache_seconds"] = int(pipeline["llm_warm_cache_seconds"])
+    if pipeline.get("llm_warm_fast_trust") is not None:
+        updates["pipeline_llm_warm_fast_trust"] = bool(pipeline["llm_warm_fast_trust"])
+    if pipeline.get("parallel_cover") is not None:
+        updates["pipeline_parallel_cover"] = bool(pipeline["parallel_cover"])
     if pipeline.get("max_experience_llm_batches") is not None:
         updates["ats_max_experience_llm_batches"] = int(pipeline["max_experience_llm_batches"])
 
-    return settings.model_copy(update=updates) if updates else settings
+    merged = settings.model_copy(update=updates) if updates else settings
+    return merged
 
 
 def _resolve_paths(settings: Settings) -> Settings:
@@ -295,9 +292,9 @@ def update_yaml_llm_settings(
     *,
     base_url: str | None = None,
     model: str | None = None,
+    model_file: str | None = None,
     api_key: str | None = None,
-    wake_url: str | None = None,
-    wake_enabled: bool | None = None,
+    context_size: int | None = None,
 ) -> None:
     """Persist LLM endpoint fields to config.yaml and refresh settings cache."""
     path = config_yaml_path()
@@ -309,12 +306,14 @@ def update_yaml_llm_settings(
         llm["base_url"] = base_url.rstrip("/")
     if model is not None:
         llm["model"] = model.strip()
+    if model_file is not None:
+        llm["model_file"] = model_file.strip()
+    elif model is not None:
+        llm["model_file"] = model.strip()
     if api_key is not None:
         llm["api_key"] = api_key
-    if wake_url is not None:
-        llm["wake_url"] = wake_url.rstrip("/")
-    if wake_enabled is not None:
-        llm["wake_enabled"] = wake_enabled
+    if context_size is not None:
+        llm["context_size"] = int(context_size)
     path.write_text(yaml.safe_dump(raw, sort_keys=False, allow_unicode=True), encoding="utf-8")
     clear_settings_cache()
 

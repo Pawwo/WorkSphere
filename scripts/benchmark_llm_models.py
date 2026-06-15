@@ -32,14 +32,15 @@ from app.prompts.loader import render_prompt  # noqa: E402
 
 FIXTURES = ROOT / "tests" / "fixtures" / "llm_benchmark"
 RESULTS_DIR = ROOT / "data" / "llm_benchmark"
-SSH_HOST = "root@127.0.0.1"
+SSH_HOST = os.environ.get("BENCHMARK_SSH_HOST", "")
 BENCHMARK_PORT = 8006
-BENCHMARK_HOST = "127.0.0.1"
+BENCHMARK_HOST = os.environ.get("BENCHMARK_HOST", "127.0.0.1")
 
 CHAT_SYSTEMD_UNITS = [
     "llama-server-bielik",
     "llama-server-bielik-cpu",
     "llama-server-bielik-11b",
+    "llama-server-jina-embed",
     "llama-server-minitron",
     "llama-server-llama32",
     "llama-server-qwen",
@@ -84,7 +85,27 @@ MODELS: list[ModelSpec] = [
     ModelSpec("qwen-9b", "Qwen3.5-9B Q4_K_M", "/root/models/qwen/qwen-9b-q4_km.gguf", context=16384, threads=4, batch_size=512, ubatch_size=512),
     ModelSpec("gemma4-4b", "Gemma 4B IT Q4_K_M", "/root/models/gemma4-e4b-it-q4_k_m.gguf", threads=4, batch_size=512, ubatch_size=512),
     ModelSpec("qwen36-27b", "Qwen3.6-27B Q3_K_M", "/root/models/qwen/Qwen3.6-27B-Q3_K_M.gguf", context=2560, batch_size=128, ubatch_size=64, extra_args="--jinja"),
-    ModelSpec("qwen30-30b", "Qwen3-30B-A3B-Instruct Q4_K_M", "/root/models/qwen/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf", ngl=30, threads=8, batch_size=128, ubatch_size=128, extra_args="--jinja"),
+    ModelSpec("qwen30-30b", "Qwen3-30B-A3B-Instruct Q4_K_M", "/root/models/qwen/Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf", ngl=999, threads=8, batch_size=128, ubatch_size=64, extra_args="--jinja"),
+    ModelSpec(
+        "qwen35-35b",
+        "Qwen3.5-35B-A3B Q4_K_M",
+        "/root/models/qwen/Qwen3.5-35B-A3B-Q4_K_M.gguf",
+        ngl=999,
+        context=8192,
+        threads=8,
+        batch_size=128,
+        ubatch_size=64,
+        extra_args="--jinja",
+    ),
+    ModelSpec(
+        "bielik-11b-q6-bench",
+        "Bielik-11B Q6_K",
+        "/root/models/bielik/Bielik-11B-v3.0-Instruct.Q6_K.gguf",
+        context=4096,
+        threads=4,
+        batch_size=512,
+        ubatch_size=512,
+    ),
     ModelSpec("qwen3-coder-30b", "Qwen3-Coder-30B-A3B Q4_K_M", "/root/models/qwen/Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf", ngl=30, threads=8, batch_size=128, ubatch_size=128),
 ]
 
@@ -161,7 +182,7 @@ for port in 8000 8002 8003 8004 8005 8006; do
 done
 sleep 2
 """
-    res = _ssh(script, timeout=60)
+    res = _ssh(script, timeout=120)
     if res.returncode != 0:
         print(f"WARN stop_chat_servers: {res.stderr.strip()}", file=sys.stderr)
 
@@ -634,6 +655,34 @@ def score_model(result: ModelResult, all_results: list[ModelResult]) -> ModelRes
     return result
 
 
+def rescore_from_json(model_ids: list[str], report: str = "") -> list[ModelResult]:
+    results: list[ModelResult] = []
+    for mid in model_ids:
+        path = RESULTS_DIR / f"{mid}.json"
+        if not path.exists():
+            print(f"MISSING {path}", file=sys.stderr)
+            continue
+        data = json.loads(path.read_text(encoding="utf-8"))
+        cases = [CaseResult(**c) for c in data["cases"]]
+        results.append(
+            ModelResult(
+                model_id=data["model_id"],
+                model_label=data["model_label"],
+                model_path=data["model_path"],
+                base_url=data["base_url"],
+                probe_ok=data["probe_ok"],
+                disqualified=data.get("disqualified", False),
+                disqualify_reason=data.get("disqualify_reason", ""),
+                cases=cases,
+            )
+        )
+    for r in results:
+        score_model(r, results)
+    if report:
+        write_report(Path(report), results, discover_infra())
+    return results
+
+
 def write_report(path: Path, results: list[ModelResult], infra: str) -> None:
     ranked = sorted(
         [r for r in results if not r.disqualified],
@@ -678,11 +727,11 @@ def write_report(path: Path, results: list[ModelResult], infra: str) -> None:
                 f"wynik {winner.total_score:.1f}/100, jakość {winner.quality_score:.1f}, "
                 f"quick_fit p95 {winner.quick_fit_p95_ms:.0f}ms.",
                 "",
-                "## Top 3 — per-case jakość",
+                "## Per-case — szczegóły",
                 "",
             ]
         )
-        for r in ranked[:3]:
+        for r in ranked:
             lines.append(f"### {r.model_label}")
             lines.append("")
             lines.append("| Case | Jakość | Latencja |")
@@ -783,7 +832,7 @@ async def main_async(args: argparse.Namespace) -> int:
 
 
 def _print_scrape_time_estimate() -> None:
-    """Rough LLM-only scrape duration at ~42 tok/s (local GPU Vulkan)."""
+    """Rough LLM-only scrape duration estimate from token budget."""
     try:
         from app.config import get_settings
 
@@ -809,7 +858,24 @@ def main() -> None:
     parser.add_argument("--wait", type=int, default=90, help="Seconds to wait for model ready")
     parser.add_argument("--report", type=str, default="", help="Output markdown report path")
     parser.add_argument("--no-restore", action="store_true", help="Do not restore default service after run")
+    parser.add_argument(
+        "--rescore",
+        nargs="+",
+        metavar="MODEL_ID",
+        help="Re-score from data/llm_benchmark/<id>.json (no LLM run); use with --report",
+    )
     args = parser.parse_args()
+    if args.rescore:
+        results = rescore_from_json(args.rescore, report=args.report)
+        print("\n=== RANKING ===")
+        for r in sorted(results, key=lambda x: (x.disqualified, -x.total_score)):
+            tag = "DQ" if r.disqualified else "OK"
+            print(
+                f"[{tag}] {r.model_label:30} total={r.total_score:5.1f} "
+                f"quality={r.quality_score:5.1f} speed={r.speed_score:5.1f} "
+                f"qf_p95={r.quick_fit_p95_ms:6.0f}ms"
+            )
+        raise SystemExit(0)
     if args.all and not args.report:
         args.report = str(ROOT / f"docs/llm-model-comparison-{date.today().isoformat()}.md")
     raise SystemExit(asyncio.run(main_async(args)))

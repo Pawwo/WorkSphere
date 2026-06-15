@@ -34,8 +34,7 @@
     const h = cfg.health || c.health || {};
     const ok = h.ok ? "OK" : "niedostępny";
     const model = h.model || c.model || "—";
-    const wake = c.wake_active ? "wake ON" : "wake OFF";
-    llmStatus.textContent = `Aktywny: ${c.base_url || "—"} · model: ${model} · status: ${ok} · ${wake}`;
+    llmStatus.textContent = `Aktywny: ${c.base_url || "—"} · model: ${model} · status: ${ok}`;
     if (c.api_key_set && c.api_key_hint) {
       llmApiKeyHint.textContent = `Zapisany klucz: ${c.api_key_hint}`;
     } else {
@@ -67,7 +66,7 @@
     if (cfg.is_custom) {
       llmPreset.value = "custom";
     } else {
-      llmPreset.value = cfg.preset_id || "8006";
+      llmPreset.value = cfg.preset_id || "local";
     }
     setLlmStatus(cfg);
     return cfg;

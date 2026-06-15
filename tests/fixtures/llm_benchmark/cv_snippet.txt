@@ -1,20 +1,17 @@
 DANE IDENTYFIKACYJNE
-Jan Kowalski | Szczecin | jan.kowalski@example.com | +48 500 000 000
-LinkedIn: linkedin.com/in/pawel-wodynski
+Jan Kowalski | Warszawa | jan.kowalski@example.com | +48 500 000 000
+LinkedIn: linkedin.com/in/jan-kowalski
 
 DOŚWIADCZENIE ZAWODOWE
-Chief Operating Officer | VentorTech | 08.2025 - obecnie | Warszawa/Szczecin
-- Zarządzanie operacjami delivery Odoo ERP i automatyzacją procesów AI.
+Chief Operating Officer | Example Corp | 08.2025 - obecnie | Warszawa
+- Zarządzanie operacjami delivery ERP i automatyzacją procesów.
 - KPI dashboards, P&L awareness, leadership zespołów cross-functional.
 
-Founder / Co-Owner | myOdoo.pl sp. z o.o. | 07.2025 - obecnie | Szczecin
-- Rozwój praktyki wdrożeń Odoo, business development.
-
-Manager Business Development | myOdoo.pl sp. z o.o. | 04.2018 - 01.2023 | Szczecin
-- Sprzedaż B2B usług Odoo, koordynacja presales i delivery.
+Project Manager | Sample Ltd | 04.2018 - 01.2023 | Warszawa
+- Koordynacja projektów IT, stakeholder management.
 
 KLUCZOWE KOMPETENCJE
-COO, Operations Management, Odoo ERP, AI Transformation, Agile, Python, LLM/RAG
+COO, Operations Management, Agile, Python, Project Management
 
 WYKSZTAŁCENIE
-Licencjat Informatyka i Ekonometria | Zachodniopomorska Szkoła Biznesu | 2003-2006
+MSc Management | Example University | 2010-2012

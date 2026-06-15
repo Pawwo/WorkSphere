@@ -142,15 +142,6 @@ class BielikClient:
             if attempt < 2:
                 await asyncio.sleep(1.0)
         result: dict = {"ok": False, "url": self.base_url, "error": last_error, "status": "error"}
-        try:
-            from app.services.llm_power_service import LlmPowerService
-
-            power = await LlmPowerService(self.settings).get_status()
-            llm_state = power.get("llm")
-            if llm_state in ("stopped", "unknown"):
-                result["status"] = "idle"
-        except Exception:
-            pass
         return result
 
     async def _cached_probe(self, *, force: bool = False) -> tuple[bool, bool]:
@@ -254,7 +245,7 @@ class BielikClient:
         limit = float(
             timeout
             if timeout is not None
-            else max(30.0, float(getattr(self.settings, "llm_wake_timeout_seconds", 90)))
+            else max(30.0, float(getattr(self.settings, "llm_timeout_seconds", 180)))
         )
         deadline = time.monotonic() + limit
         last: dict = {"ok": False, "status": "error"}

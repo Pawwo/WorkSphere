@@ -23,9 +23,7 @@ Samodzielna aplikacja webowa do wyszukiwania ofert pracy w Polsce, triażu inbox
 
 ### LLM
 
-Aplikacja jest **dopasowana do polskiego modelu [Bielik](https://huggingface.co/speakleash)** uruchomionego lokalnie przez **llama.cpp** (`llama-server`). Domyślna konfiguracja zakłada GGUF w rodzinie Minitron/Bielik-7B.
-
-Działa też z **dowolnym API zgodnym z OpenAI**: Ollama, vLLM, LocalAI, OpenRouter, itp. Wystarczy ustawić `LLM_BASE_URL` i `LLM_MODEL` w `.env` lub `config.yaml`.
+Aplikacja wymaga **dowolnego API zgodnego z OpenAI** (`/v1/chat/completions`). Dobrze sprawdza się polski model [Bielik](https://huggingface.co/speakleash) przez **llama.cpp** (`llama-server`), ale działa też Ollama, vLLM, LocalAI, OpenRouter itp.
 
 ## Szybka instalacja (Linux)
 
@@ -125,20 +123,9 @@ WorkSphere/
 └── install-skills.sh    # tylko scrapery
 ```
 
-## Wydajność — przykładowa konfiguracja
+## Wydajność
 
-Poniższe liczby pochodzą z **przykładowego** setupu: lokalny LLM na GPU (AMD local GPU + Vulkan), model Minitron-Bielik-7B Q4_K_M, `llama.cpp` jako `llama-server`. Na innym sprzęcie czasy będą inne.
-
-| Metryka | Przykład |
-|---------|----------|
-| Prompt processing | ~200 tok/s |
-| Generacja (tg128) | ~40 tok/s |
-| `quick_fit` ×40 ofert | ~35 s LLM |
-| Pełny apply | ~2–4 min |
-
-Zalecenia pod słabszy lokalny LLM (`config.yaml`): `llm.concurrency: 1`, `scrapers.llm_fit_limit: 40`, `llm.context_size: 4096`.
-
-Więcej: [docs/local-llm-llm-power-baseline.md](docs/local-llm-llm-power-baseline.md) (opcjonalna dokumentacja tuningu).
+Czasy scrape/apply zależą od wybranego LLM i sprzętu. Przy słabszym lokalnym modelu warto w `config.yaml` ustawić: `llm.concurrency: 1`, `scrapers.llm_fit_limit: 40`, `llm.context_size: 4096`.
 
 ## Testy
 
@@ -147,7 +134,7 @@ source .venv/bin/activate
 pytest -m "not integration"
 ```
 
-Testy `integration` wymagają działającego LLM i SearXNG w LAN.
+Testy `integration` wymagają działającego LLM i SearXNG (opcjonalnie).
 
 ## Licencja
 

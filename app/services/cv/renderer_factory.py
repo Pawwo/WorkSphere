@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 def get_document_renderer(settings: Settings | None = None) -> DocumentRenderer:
     settings = settings or get_settings()
-    mode = (settings.cv_renderer or "latex").strip().lower()
+    mode = (settings.cv_renderer or "html").strip().lower()
     if mode == "html":
         from app.services.cv.html_document_renderer import HtmlDocumentRenderer
 
@@ -25,7 +25,7 @@ def get_document_renderer(settings: Settings | None = None) -> DocumentRenderer:
 
 def get_pdf_compiler(settings: Settings | None = None) -> PdfCompiler:
     settings = settings or get_settings()
-    mode = (settings.cv_renderer or "latex").strip().lower()
+    mode = (settings.cv_renderer or "html").strip().lower()
     if mode == "html":
         from app.services.pdf_service import PdfService
 

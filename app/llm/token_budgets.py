@@ -1,4 +1,4 @@
-"""Per-task max_tokens budgets tuned for local GPU Vulkan (ctx 4096, ~42 tok/s)."""
+"""Per-task max_tokens budgets for local LLM context (n_ctx≈4096)."""
 
 from __future__ import annotations
 

@@ -1,5 +1,6 @@
 """Tests for LLM CV tailoring service."""
 
+import asyncio
 import json
 from unittest.mock import AsyncMock, patch
 
@@ -258,3 +259,105 @@ async def test_align_cv_language_en_uses_compact_before_full_translate():
     full.assert_not_awaited()
     assert "compact LLM translate" in " ".join(warnings)
     assert "Odoo" in result.profile_statement
+
+
+@pytest.mark.asyncio
+async def test_post_enrich_en_uses_offline_not_second_llm_align():
+    """P0: after ATS enrichment, EN jobs must not run a second compact LLM align."""
+    svc = CvTailorService()
+    baseline = CvDraftData(
+        profile_statement="Operations leader.",
+        competencies=["Ops: Odoo"],
+        experience_entries=[
+            ExperienceEntry(
+                period="2020-Present",
+                title="Chief Operating Officer",
+                company="Locon",
+                bullets=["Led Odoo delivery operations."],
+            )
+        ],
+        education_entries=[],
+    )
+    job = JobParsed(
+        company="Locon",
+        role="Chief Operating Officer",
+        raw_text="COO role. Requirements: Odoo, KPI, agile.",
+        language="en",
+    )
+    align_calls = 0
+    offline_calls = 0
+
+    async def counting_align(draft, j, **kw):
+        nonlocal align_calls
+        align_calls += 1
+        return draft, []
+
+    def offline_align(draft, j, **kw):
+        nonlocal offline_calls
+        offline_calls += 1
+        return draft, ["offline post-enrich"]
+
+    with patch.object(svc.llm, "is_ready", AsyncMock(return_value=True)):
+        with patch.object(
+            svc,
+            "_resolve_targets",
+            AsyncMock(return_value=(json.loads(TARGETS_JSON), json.loads(HEADER_JSON))),
+        ):
+            with patch.object(svc, "_align_cv_language", AsyncMock(side_effect=counting_align)):
+                with patch.object(svc, "_align_cv_language_offline", side_effect=offline_align):
+                    with patch.object(svc.llm, "chat_complete", AsyncMock(return_value=CV_JSON)):
+                        with patch(
+                            "app.services.cv_tailor_service.apply_pm_ats_enrichment",
+                            return_value=(
+                                "PM summary with lifecycle keywords.",
+                                ["Project Management: Jira, Confluence"],
+                                baseline.experience_entries,
+                                ["ATS enrichment: COO lifecycle + myOdoo Agile bullets"],
+                            ),
+                        ):
+                            await svc.tailor_cv_draft(
+                                job,
+                                baseline=baseline,
+                                profile_md="## Identity\n- **Name:** Test",
+                                job_targets=json.loads(TARGETS_JSON),
+                                header=json.loads(HEADER_JSON),
+                            )
+
+    assert align_calls == 1
+    assert offline_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_parallel_cover_when_concurrency_ge_2():
+    """P4: cover LLM task is spawned in parallel with CV tailoring."""
+    from app.config import Settings
+
+    settings = Settings().model_copy(
+        update={"llm_concurrency": 2, "pipeline_parallel_cover": True}
+    )
+    svc = CvTailorService(settings)
+    baseline = baseline_cv_draft(role=JOB.role, company=JOB.company, profile_md="x", language="en")
+    created_tasks: list[asyncio.Task] = []
+    real_create_task = asyncio.create_task
+
+    def track_create_task(coro):
+        task = real_create_task(coro)
+        created_tasks.append(task)
+        return task
+
+    with patch.object(svc, "tailor_cv_draft", AsyncMock(return_value=(baseline, []))):
+        with patch.object(svc, "tailor_cover", AsyncMock(return_value={"opening": "parallel"})):
+            with patch.object(svc, "_emit_progress", AsyncMock()):
+                with patch("app.services.cv_tailor_service.asyncio.create_task", side_effect=track_create_task):
+                    cv, cover, notes = await svc._tailor_cv_and_cover(
+                        JOB,
+                        baseline=baseline,
+                        profile_md="x",
+                        behavioral_md="",
+                        cover_default={},
+                        targets={},
+                        header={},
+                    )
+
+    assert len(created_tasks) == 1
+    assert cover["opening"] == "parallel"

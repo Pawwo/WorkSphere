@@ -9,6 +9,7 @@ from app.models.pipeline import HIRING_STAGES, PIPELINE_STAGES, STAGE_PROGRESS
 from app.config import get_settings
 from app.llm.client import BielikClient
 from app.services.application_service import ApplicationService
+from app.services.cv.renderer_factory import get_pdf_compiler
 from app.services.latex_service import LatexService
 from app.services.pipeline_service import PipelineService
 from app.services.task_service import TaskService
@@ -110,30 +111,33 @@ async def _run_proceed_task(task_id: str, app_id: int, compile_pdf: bool) -> Non
 
 
 @router.get("/{app_id}/preflight")
-async def application_preflight(app_id: int, wake: bool = True):
+async def application_preflight(app_id: int):
     row = await ApplicationService().db.get_application(app_id)
     if not row:
         raise HTTPException(status_code=404, detail="Application not found")
     settings = get_settings()
-    from app.services.llm_power_service import LlmPowerService
-
-    power = LlmPowerService(settings)
     pipeline_running = row.get("pipeline_status") == "running"
-    if wake and power.enabled and not pipeline_running:
-        llm = await power.wake_and_prepare()
-    else:
-        llm = await BielikClient(settings).healthcheck_extended(
-            force_probe=not pipeline_running,
-        )
-    latex = LatexService(settings.repo_root, settings=settings).tools_available()
+    llm = await BielikClient(settings).healthcheck_extended(
+        force_probe=not pipeline_running,
+    )
     ready = bool(llm.get("ok") and llm.get("inference_ok") is not False)
+    latex_svc = LatexService(settings.repo_root, settings=settings)
+    latex = latex_svc.tools_available()
+    cv_renderer = (settings.cv_renderer or "html").strip().lower()
+    if cv_renderer == "html":
+        pdf_tools = get_pdf_compiler(settings).tools_available()
+        ready_for_pdf = bool(pdf_tools.get("playwright"))
+        latex = {**latex, "cv_renderer": "html", "pdf_tools": pdf_tools}
+    else:
+        ready_for_pdf = bool(latex.get("lualatex") and latex.get("xelatex"))
+        latex = {**latex, "cv_renderer": cv_renderer}
     return {
         "application_id": app_id,
         "llm": llm,
-        "wake_url": settings.llm_wake_url,
-        "latex": {**latex, "ok": latex.get("lualatex") and latex.get("xelatex")},
+        "cv_renderer": cv_renderer,
+        "latex": {**latex, "ok": ready_for_pdf},
         "ready_for_draft": ready,
-        "ready_for_pdf": bool(latex.get("lualatex") and latex.get("xelatex")),
+        "ready_for_pdf": ready_for_pdf,
         "interview_prep_enabled": settings.pipeline_interview_prep_enabled,
     }
 

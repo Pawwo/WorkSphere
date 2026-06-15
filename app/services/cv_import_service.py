@@ -14,7 +14,7 @@ from app.prompts.loader import render_prompt
 
 logger = logging.getLogger(__name__)
 
-# llama.cpp n_ctx=4096 — keep each pass input bounded for local GPU Vulkan
+# llama.cpp n_ctx=4096 — keep each pass input bounded
 MAX_HEADER_CHARS = 1400
 MAX_EXPERIENCE_PASS_CHARS = 2800
 MAX_SKILLS_CHARS = 1000

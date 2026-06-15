@@ -78,7 +78,15 @@ class PipelineStages:
     async def stage_evaluate(self, ctx: PipelineContext, cb: ProgressCallback = None) -> None:
         await self.svc._emit(cb, "evaluate", "Ocena dopasowania…")
         await self.svc._set_stage(ctx, "evaluate", "running")
-        ctx.evaluation = await self.svc.apply.evaluate(ctx.parsed, ctx.bundle)
+        company = ctx.parsed.company if ctx.parsed else ""
+        search_prefetch = asyncio.create_task(self.svc.apply.prefetch_company_search(company))
+        try:
+            ctx.evaluation = await self.svc.apply.evaluate(ctx.parsed, ctx.bundle)
+        finally:
+            await search_prefetch
+        from app.services.pipeline_service import mark_llm_warm
+
+        mark_llm_warm()
         self.svc._save_json(ctx, "evaluation.json", ctx.evaluation.model_dump())
         await self.svc.db.update_application(
             ctx.application_id,

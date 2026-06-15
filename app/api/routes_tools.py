@@ -29,7 +29,7 @@ async def get_llm_settings():
 async def update_llm_settings(body: LlmSettingsUpdate):
     base_url = body.base_url
     model = body.model
-    if body.preset_id:
+    if body.preset_id and body.preset_id != "custom":
         cfg = current_llm_config()
         match = next((p for p in cfg["presets"] if p["id"] == body.preset_id), None)
         if not match:
@@ -37,10 +37,10 @@ async def update_llm_settings(body: LlmSettingsUpdate):
         base_url = match["base_url"]
         if model is None and match.get("default_model"):
             model = match["default_model"]
-    if not any([base_url, model, body.api_key and body.api_key.strip()]):
+    if not any([base_url, model, body.api_key and body.api_key.strip(), body.preset_id]):
         raise HTTPException(
             status_code=400,
-            detail="Provide base_url, preset_id, model, or api_key",
+            detail="Provide preset_id, base_url, model, or api_key",
         )
     try:
         cfg = apply_llm_settings(
@@ -56,7 +56,7 @@ async def update_llm_settings(body: LlmSettingsUpdate):
 @router.post("/llm/test")
 async def test_llm_settings():
     message = llm_test_message()
-    health = await test_llm_connection(wake=True)
+    health = await test_llm_connection()
     cfg = current_llm_config()
     return {"config": cfg, "health": health, "message": message}
 

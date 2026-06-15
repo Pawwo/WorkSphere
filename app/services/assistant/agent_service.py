@@ -8,7 +8,7 @@ import re
 from typing import Any, Optional
 
 from app.config import Settings, get_settings
-from app.llm.client import BielikClient, clear_probe_cache
+from app.llm.client import BielikClient
 from app.llm.exceptions import LlmDegradedError
 from app.llm.structured import extract_json
 from app.llm.token_budgets import ASSISTANT, ASSISTANT_MEMORY_EXTRACT
@@ -92,12 +92,6 @@ class AgentService:
         return response
 
     async def _ensure_llm_ready(self) -> dict:
-        from app.services.llm_power_service import LlmPowerService
-
-        power = LlmPowerService(self.settings)
-        if power.enabled:
-            clear_probe_cache()
-            return await power.wake_and_prepare()
         health = await self.llm.healthcheck_extended(force_probe=True)
         return {"ok": health.get("ok", False), "health": health}
 
@@ -108,8 +102,7 @@ class AgentService:
             "type": "error",
             "content": (
                 f"LLM niedostępny ({detail}). "
-                "Wejdź w Ustawienia → Narzędzia i kliknij „Test połączenia”, "
-                "aby obudzić Bielika na local GPU."
+                "Wejdź w Narzędzia, ustaw LLM_BASE_URL i kliknij „Test połączenia”."
             ),
         }
 

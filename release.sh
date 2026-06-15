@@ -15,7 +15,7 @@ pip install -q --upgrade pip
 pip install -q -r requirements.txt
 
 echo "=== Running tests ==="
-pytest
+pytest -m "not integration"
 
 echo "=== Bumping version ($BUMP) ==="
 bash scripts/bump_version.sh "$BUMP"
@@ -48,4 +48,3 @@ git push origin main
 git push origin "$TAG"
 
 echo "Release ${TAG} complete."
-echo "Deploy: ./deploy/rpi4/deploy-ssh.sh"

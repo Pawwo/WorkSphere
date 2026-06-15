@@ -8,7 +8,7 @@ from app.config import Settings, get_settings
 from app.models.apply import JobParsed
 from app.models.jobs import JobCard, ManualImportResult, ScrapeResultItem, SeenJobEntry
 from app.services.highlights_service import enrich_highlights_for_new_jobs
-from app.services.pi_gap_sync import portal_from_url
+from app.services.scrape.url_utils import portal_from_url
 from app.services.scrape.fit import fit_jobs_parallel
 from app.services.scrape_service import ScrapeService
 from app.storage.files import read_profile_excerpt, seen_key, today_iso

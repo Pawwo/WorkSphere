@@ -1,4 +1,4 @@
-"""Trim profile/job text for LLM calls (local GPU Vulkan n_ctx=4096)."""
+"""Trim profile/job text for LLM calls (bounded context window)."""
 
 from __future__ import annotations
 

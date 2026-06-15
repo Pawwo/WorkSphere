@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -861,10 +862,15 @@ class CvTailorService:
         draft.experience_entries = enriched_exp
         all_notes.extend(enrich_notes)
         cv_lang = normalize_cv_language(job.language)
-        skip_post_align = cv_lang == "en" and not pdf_entries_language_mismatch(
+        draft = apply_static_cv_language(draft, cv_lang, profile_md=profile_md)
+        if cv_lang == "en":
+            draft, post_enrich_warnings = self._align_cv_language_offline(
+                draft, job, profile_md=profile_md
+            )
+            all_notes.extend(post_enrich_warnings)
+        elif not pdf_entries_language_mismatch(draft, cv_lang) and not draft_has_language_mismatch(
             draft, cv_lang
-        ) and not draft_has_language_mismatch(draft, cv_lang)
-        if skip_post_align:
+        ):
             draft.profile_statement = ensure_role_in_profile_statement(
                 draft.profile_statement, job.role
             )
@@ -923,6 +929,55 @@ class CvTailorService:
             )
         return decisions[:8]
 
+    def _parallel_cover_enabled(self) -> bool:
+        if not getattr(self.settings, "pipeline_parallel_cover", True):
+            return False
+        return max(1, int(getattr(self.settings, "llm_concurrency", 1))) >= 2
+
+    async def _tailor_cv_and_cover(
+        self,
+        job: JobParsed,
+        *,
+        baseline: CvDraftData,
+        profile_md: str,
+        behavioral_md: str,
+        cover_default: dict,
+        targets: dict,
+        header: Optional[dict],
+    ) -> tuple[CvDraftData, dict, List[str]]:
+        """Run CV tailoring; optionally overlap cover LLM when llm_concurrency >= 2."""
+        parallel = self._parallel_cover_enabled()
+        cover_task: asyncio.Task | None = None
+        if parallel:
+            cover_task = asyncio.create_task(
+                self.tailor_cover(
+                    job,
+                    profile_md=profile_md,
+                    behavioral_md=behavioral_md,
+                    job_targets=targets,
+                    cover_default=dict(cover_default),
+                )
+            )
+        cv_draft, llm_notes = await self.tailor_cv_draft(
+            job,
+            baseline=baseline,
+            profile_md=profile_md,
+            job_targets=targets,
+            header=header,
+        )
+        await self._emit_progress("draft: cover")
+        if cover_task is not None:
+            cover = await cover_task
+        else:
+            cover = await self.tailor_cover(
+                job,
+                profile_md=profile_md,
+                behavioral_md=behavioral_md,
+                job_targets=targets,
+                cover_default=dict(cover_default),
+            )
+        return cv_draft, cover, llm_notes
+
     async def tailor_application(
         self,
         job: JobParsed,
@@ -946,20 +1001,14 @@ class CvTailorService:
                 master_summary=master_summary,
                 truth=truth,
             )
-            cv_draft, llm_notes = await self.tailor_cv_draft(
+            cv_draft, cover, llm_notes = await self._tailor_cv_and_cover(
                 job,
                 baseline=baseline,
                 profile_md=profile_md,
-                job_targets=targets,
-                header=header,
-            )
-            await self._emit_progress("draft: cover")
-            cover = await self.tailor_cover(
-                job,
-                profile_md=profile_md,
                 behavioral_md=behavioral_md,
-                job_targets=targets,
-                cover_default=dict(cover_default),
+                cover_default=cover_default,
+                targets=targets,
+                header=header,
             )
         except CvTailorError:
             raise
@@ -1057,20 +1106,14 @@ class CvTailorService:
                 llm_degraded=degraded,
             )
         try:
-            cv_draft, llm_notes = await self.tailor_cv_draft(
+            cv_draft, cover, llm_notes = await self._tailor_cv_and_cover(
                 job,
                 baseline=baseline,
                 profile_md=profile_md,
-                job_targets=targets,
-                header=header,
-            )
-            await self._emit_progress("draft: cover")
-            cover = await self.tailor_cover(
-                job,
-                profile_md=profile_md,
                 behavioral_md=behavioral_md,
-                job_targets=targets,
-                cover_default=dict(cover_default),
+                cover_default=cover_default,
+                targets=targets,
+                header=header,
             )
         except CvTailorError as exc:
             skipped = 3 + max(0, self._json_failures)

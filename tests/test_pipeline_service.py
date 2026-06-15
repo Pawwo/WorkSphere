@@ -8,7 +8,7 @@ import pytest
 
 from app.config import Settings
 from app.models.apply import ApplyRequest, FitEvaluation, JobParsed, ReviewerResult
-from app.services.pipeline_service import PipelineService
+from app.services.pipeline_service import PipelineService, mark_llm_warm
 
 
 def _settings(tmp_path: Path) -> Settings:
@@ -212,12 +212,7 @@ async def test_retry_evaluate_refreshes_evaluation(tmp_path, job_parsed, evaluat
 @pytest.mark.asyncio
 async def test_wake_llm_before_proceed_and_retry(tmp_path, job_parsed, evaluation):
     _LLM_HC = {"ok": True, "inference_ok": True}
-    settings = _settings(tmp_path).model_copy(
-        update={
-            "llm_wake_enabled": True,
-            "llm_wake_url": "http://127.0.0.1:8099",
-        }
-    )
+    settings = _settings(tmp_path)
     pipeline = PipelineService(settings)
     ctx = await pipeline.create_application(ApplyRequest(url="https://example.com/job", proceed=False))
     ctx.parsed = job_parsed
@@ -304,3 +299,37 @@ async def test_tracker_dedup_by_url(tmp_path):
     existing = await db.get_application_by_url("https://example.com/job")
     assert existing is not None
     assert existing["id"] == id1
+
+
+@pytest.mark.asyncio
+async def test_wake_llm_trust_after_mark_llm_warm(tmp_path):
+    """P1: recent evaluate marks LLM warm — proceed skips full wake."""
+    settings = _settings(tmp_path).model_copy(
+        update={"pipeline_llm_warm_fast_trust": True, "pipeline_llm_warm_cache_seconds": 600}
+    )
+    pipeline = PipelineService(settings)
+    mark_llm_warm()
+
+    with patch.object(pipeline, "_wake_llm", wraps=pipeline._wake_llm) as wake:
+        hc = await pipeline._wake_llm(trust_recent=True)
+
+    assert hc.get("warm_cache") == "trust"
+    assert hc.get("ok") is True
+    wake.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_evaluate_prefetches_company_search(tmp_path, job_parsed, evaluation):
+    """P2: SearXNG prefetch runs during evaluate."""
+    settings = _settings(tmp_path)
+    pipeline = PipelineService(settings)
+    ctx = await pipeline.create_application(ApplyRequest(text="job", proceed=False))
+    ctx.parsed = job_parsed
+
+    with patch.object(
+        pipeline.apply, "prefetch_company_search", AsyncMock(return_value=None)
+    ) as prefetch:
+        with patch.object(pipeline.apply, "evaluate", AsyncMock(return_value=evaluation)):
+            await pipeline.stages.stage_evaluate(ctx)
+
+    prefetch.assert_awaited_once_with("Acme Corp")

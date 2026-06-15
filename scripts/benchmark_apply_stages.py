@@ -121,8 +121,7 @@ def main() -> None:
     draft_ms = timings.get("draft", 0)
     if draft_ms > 90_000:
         print(
-            "\n  Hint: draft >90s — run local GPU gate/tuning "
-            "(.cursor/skills/local-llm-vulkan-tuning/SKILL.md, scripts/local-llm_llm_gate.sh)"
+            "\n  Hint: draft >90s — check LLM load and config.yaml llm.concurrency"
         )
 
 
