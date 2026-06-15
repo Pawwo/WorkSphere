@@ -16,8 +16,8 @@ def test_resume_and_cover_filenames():
     name = "Jan Kowalski"
     company = "Wolters Kluwer Polska Sp. z o.o."
     assert application_cv_filename(name, company, ".html") == (
-        "Resume_Pawel_Wodynski_Wolters_Kluwer.html"
+        "Resume_Jan_Kowalski_Wolters_Kluwer.html"
     )
     assert application_cover_filename(name, company, ".html") == (
-        "Cover_Pawel_Wodynski_Wolters_Kluwer.html"
+        "Cover_Jan_Kowalski_Wolters_Kluwer.html"
     )
