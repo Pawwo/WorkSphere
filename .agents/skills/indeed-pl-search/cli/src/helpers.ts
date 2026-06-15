@@ -130,71 +130,79 @@ export async function searchIndeedPl(
   limit = 20,
   detailLimit = 0,
 ): Promise<{ total: number; page: number; perPage: number; results: JobCard[] }> {
-  const start = (page - 1) * 10
-  const params = new URLSearchParams({ q: keyword, l: "Poland", start: String(start) })
-  if (days > 0) params.set("fromage", String(days))
-  const html = await fetchPageContent(`${BASE_URL}?${params.toString()}`)
-  if (isBlocked(html)) {
-    throw new Error("Indeed blocked automated access. Set INDEED_HEADLESS=0 or paste job text into /apply.")
-  }
-  let cards = parseJobCards(html)
-  if (limit) cards = cards.slice(0, limit)
-  const detailCount = Math.max(0, Math.min(detailLimit, cards.length))
-  for (let i = 0; i < detailCount; i++) {
-    const card = cards[i]
-    try {
-      card.description = (await fetchDescription(card.url)) || card.title
-      await sleepJitter(0.5, 1.5)
-    } catch {
-      card.description = card.title
+  try {
+    const start = (page - 1) * 10
+    const params = new URLSearchParams({ q: keyword, l: "Poland", start: String(start) })
+    if (days > 0) params.set("fromage", String(days))
+    const html = await fetchPageContent(`${BASE_URL}?${params.toString()}`)
+    if (isBlocked(html)) {
+      throw new Error("Indeed blocked automated access. Set INDEED_HEADLESS=0 or paste job text into /apply.")
     }
+    let cards = parseJobCards(html)
+    if (limit) cards = cards.slice(0, limit)
+    const detailCount = Math.max(0, Math.min(detailLimit, cards.length))
+    for (let i = 0; i < detailCount; i++) {
+      const card = cards[i]
+      try {
+        card.description = (await fetchDescription(card.url)) || card.title
+        await sleepJitter(0.5, 1.5)
+      } catch {
+        card.description = card.title
+      }
+    }
+    for (let i = detailCount; i < cards.length; i++) {
+      cards[i].description = cards[i].description || cards[i].title
+    }
+    return { total: cards.length, page, perPage: cards.length, results: cards }
+  } finally {
+    await closeIndeedBrowser()
   }
-  for (let i = detailCount; i < cards.length; i++) {
-    cards[i].description = cards[i].description || cards[i].title
-  }
-  return { total: cards.length, page, perPage: cards.length, results: cards }
 }
 
 export async function detailIndeedPl(idOrUrl: string): Promise<JobCard> {
-  const url = idOrUrl.startsWith("http")
-    ? idOrUrl
-    : `https://pl.indeed.com/viewjob?jk=${idOrUrl}`
-  const html = await fetchPageContent(url)
-  if (isBlocked(html)) throw new Error("Indeed blocked automated access")
-  const description = extractDescriptionFromHtml(html)
-  const cards = parseJobCards(html)
-  const match = cards[0]
-  if (match) {
-    if (!match.description && description) match.description = description
-    if (!match.description) {
-      match.description = (await fetchDescription(url)) || match.title
+  try {
+    const url = idOrUrl.startsWith("http")
+      ? idOrUrl
+      : `https://pl.indeed.com/viewjob?jk=${idOrUrl}`
+    const html = await fetchPageContent(url)
+    if (isBlocked(html)) throw new Error("Indeed blocked automated access")
+    const description = extractDescriptionFromHtml(html)
+    const cards = parseJobCards(html)
+    const match = cards[0]
+    if (match) {
+      if (!match.description && description) match.description = description
+      if (!match.description) {
+        match.description = (await fetchDescription(url)) || match.title
+      }
+      return match
     }
-    return match
-  }
-  if (description) {
+    if (description) {
+      return {
+        id: idOrUrl,
+        title: "Position",
+        company: null,
+        location: null,
+        date: null,
+        deadline: null,
+        salary: null,
+        url,
+        description,
+      }
+    }
+    const fallbackDescription = await fetchDescription(url)
     return {
       id: idOrUrl,
-      title: "Position",
+      title: idOrUrl,
       company: null,
       location: null,
       date: null,
       deadline: null,
       salary: null,
       url,
-      description,
+      description: fallbackDescription || null,
     }
-  }
-  const fallbackDescription = await fetchDescription(url)
-  return {
-    id: idOrUrl,
-    title: idOrUrl,
-    company: null,
-    location: null,
-    date: null,
-    deadline: null,
-    salary: null,
-    url,
-    description: fallbackDescription || null,
+  } finally {
+    await closeIndeedBrowser()
   }
 }
 
