@@ -132,14 +132,7 @@ curl -X POST http://localhost:8080/api/scrape \
 - **Upskill** — `POST /api/upskill`
 - **Reset** — `POST /api/reset` z potwierdzeniem `RESET`
 
-## 7. Testy
-
-```bash
-source .venv/bin/activate
-pytest -m "not integration"
-```
-
-## 8. Struktura danych
+## 7. Struktura danych
 
 ```
 data/
@@ -150,6 +143,6 @@ data/
 └── app.db            # SQLite: zadania, aplikacje
 ```
 
-## 9. Produkcja (opcjonalnie)
+## 8. Produkcja (opcjonalnie)
 
 Uruchom `uvicorn` pod systemd lub reverse proxy (nginx/Caddy). Aplikacja nie wymaga Dockera — tylko opcjonalny kontener SearXNG.

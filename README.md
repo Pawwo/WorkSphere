@@ -126,13 +126,6 @@ WorkSphere/
 
 Czasy scrape/apply zależą od LLM i sprzętu. Przy słabszym lokalnym modelu w `config.yaml`: `llm.concurrency: 1`, `scrapers.llm_fit_limit: 40`, `llm.context_size: 4096`.
 
-## Testy
-
-```bash
-source .venv/bin/activate
-pytest -m "not integration"
-```
-
 ## Licencja
 
 Apache License 2.0 — zobacz [LICENSE](LICENSE).

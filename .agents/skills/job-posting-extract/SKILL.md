@@ -23,14 +23,6 @@ Integrated in:
 2. Responsibilities (`What you'll be working on`, `Obowiązki`) — only if no requirements block
 3. Skip nav, cookies, sign-in, similar jobs
 
-## Manual preview
+## Manual check
 
-```bash
-uv run python scripts/extract_posting_preview.py "https://www.linkedin.com/jobs/view/..."
-```
-
-## Benchmark
-
-```bash
-uv run python scripts/benchmark_posting_extract.py --limit 100 --multi-portal
-```
+Fetch a posting URL and inspect `seen_jobs.json` after scrape, or call scrape with a single URL from `/scrape` and review the stored `description` field.
