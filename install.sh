@@ -49,19 +49,55 @@ install_bun() {
   fi
 }
 
+docker_ready() {
+  need_cmd docker && docker info >/dev/null 2>&1
+}
+
+install_docker() {
+  if docker_ready; then
+    return 0
+  fi
+  if ! need_cmd apt-get; then
+    echo "Docker not available — install Docker manually, then: bash deploy/searxng/setup.sh"
+    return 1
+  fi
+  echo "Installing Docker (apt) for SearXNG..."
+  sudo apt-get update -qq
+  if ! sudo apt-get install -y docker.io; then
+    echo "Docker install failed — run manually: bash deploy/searxng/setup.sh" >&2
+    return 1
+  fi
+  if need_cmd docker-compose; then
+    : # classic compose
+  elif ! docker compose version >/dev/null 2>&1; then
+    sudo apt-get install -y docker-compose-plugin 2>/dev/null \
+      || sudo apt-get install -y docker-compose-v2 2>/dev/null \
+      || true
+  fi
+  if need_cmd systemctl; then
+    sudo systemctl enable --now docker 2>/dev/null || true
+  fi
+  if ! docker_ready; then
+    echo "Docker installed but daemon not running — start Docker, then: bash deploy/searxng/setup.sh"
+    return 1
+  fi
+  echo "Docker ready."
+}
+
 install_searxng() {
-  if ! need_cmd docker; then
-    echo "Docker not found — skipping SearXNG."
-    echo "  Install Docker, then run: bash deploy/searxng/setup.sh"
+  echo "=== SearXNG (web search) ==="
+  if ! docker_ready; then
+    install_docker || return 0
+  fi
+  if ! docker_ready; then
     return 0
   fi
-  if ! docker info >/dev/null 2>&1; then
-    echo "Docker daemon not running — skipping SearXNG."
-    echo "  Start Docker, then run: bash deploy/searxng/setup.sh"
-    return 0
+  echo "Starting SearXNG container..."
+  if bash deploy/searxng/setup.sh; then
+    echo "SearXNG OK — http://127.0.0.1:8888"
+  else
+    echo "SearXNG setup failed — retry: bash deploy/searxng/setup.sh" >&2
   fi
-  echo "Starting SearXNG (Docker)..."
-  bash deploy/searxng/setup.sh
 }
 
 set_env_var() {
@@ -154,10 +190,11 @@ install_searxng
 
 echo ""
 echo "=== Install complete ==="
-echo "1. Point LLM_BASE_URL in .env to your OpenAI-compatible server (llama-server, Ollama, vLLM, OpenRouter, …)"
-echo "2. Start the app:"
+echo "1. Start your LLM (OpenAI-compatible), e.g. llama-server on :8006 — or set OpenRouter in /tools"
+echo "2. SearXNG: http://127.0.0.1:8888 (if Docker step succeeded)"
+echo "3. Start the app:"
 echo "     source .venv/bin/activate"
 echo "     uvicorn app.main:app --host 0.0.0.0 --port 8080"
-echo "3. Open http://localhost:8080/dashboard"
+echo "4. Open http://localhost:8080/dashboard"
 echo ""
 echo "Full guide: SETUP.md"

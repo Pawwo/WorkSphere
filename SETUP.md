@@ -9,10 +9,10 @@ Przewodnik instalacji i pierwszego uruchomienia na własnym hoście (Linux x86_6
 | Python | 3.10+ |
 | Bun | [bun.sh](https://bun.sh) — scrapery portalowe |
 | curl | healthchecki |
-| Docker | opcjonalnie — tylko dla SearXNG |
+| Docker | dla SearXNG — `install.sh` próbuje zainstalować (apt) i uruchomić kontener |
 | LLM | serwer **OpenAI-compatible** (`/v1/chat/completions`) |
 
-CV generowane są jako **HTML → PDF** (Playwright/Chromium). Ustaw `CV_RENDERER=html` w `.env` (domyślne po `install.sh`). Renderer LaTeX jest opcjonalny i legacy.
+CV generowane są jako **HTML → PDF** (Playwright/Chromium). Domyślnie `CV_RENDERER=html` w `.env`.
 
 ## 2. Instalacja automatyczna
 
@@ -23,7 +23,7 @@ chmod +x install.sh
 ./install.sh
 ```
 
-Instalator obsługuje **x86_64** i **aarch64/arm64**. Instaluje Python venv, Bun, scrapery, Playwright oraz — gdy Docker jest dostępny — **SearXNG** z `deploy/searxng/`.
+Instalator obsługuje **x86_64** i **aarch64/arm64**. Instaluje Python venv, Bun, scrapery, Playwright, a następnie **SearXNG** (Docker przez apt, jeśli brak, + `deploy/searxng/setup.sh`).
 
 ## 3. Instalacja ręczna
 
@@ -41,14 +41,10 @@ Scrapery to **Bun workspace** — uruchamiaj `bun install` tylko w `.agents/skil
 
 ### SearXNG
 
-```bash
-cd deploy/searxng
-docker compose up -d
-```
-
-Sprawdzenie:
+Automatycznie przez `./install.sh`. Ręcznie (gdy Docker był niedostępny podczas instalacji):
 
 ```bash
+bash deploy/searxng/setup.sh
 curl -s "http://127.0.0.1:8888/search?q=test&format=json" | head
 ```
 
@@ -156,4 +152,4 @@ data/
 
 ## 9. Produkcja (opcjonalnie)
 
-Deploy na serwer Linux (systemd, bez Dockera dla aplikacji): [docs/CI_CD.md](docs/CI_CD.md).
+Uruchom `uvicorn` pod systemd lub reverse proxy (nginx/Caddy). Aplikacja nie wymaga Dockera — tylko opcjonalny kontener SearXNG.

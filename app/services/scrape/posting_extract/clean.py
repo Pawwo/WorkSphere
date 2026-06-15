@@ -33,5 +33,10 @@ def normalize_whitespace(text: str) -> str:
     return re.sub(r"(?i)\s*show more\s*show less\s*$", "", text).strip()
 
 
+def trim_leading_junk(text: str) -> str:
+    """Drop leading punctuation left by partial section extraction."""
+    return re.sub(r"^[\s,;:·\-–—]+", "", text or "").strip()
+
+
 def trim_trailing_chrome(text: str) -> str:
     return re.sub(r"(?i)\s*(show more\s*show less|set alert|see who you know)\s*$", "", text).strip()

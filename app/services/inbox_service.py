@@ -485,6 +485,21 @@ class InboxService:
             if language_gap(profile_langs, language=req.language, level=req.level)
         ]
 
+    @staticmethod
+    def _has_auto_language_skip(job, *, row: dict | None = None) -> bool:
+        skip = None
+        if row and row.get("skip_reason"):
+            skip = row["skip_reason"]
+        elif job is not None and job.skip_reason is not None:
+            skip = (
+                job.skip_reason.model_dump()
+                if hasattr(job.skip_reason, "model_dump")
+                else job.skip_reason
+            )
+        if isinstance(skip, dict):
+            return skip.get("category") == "auto_language_level"
+        return getattr(skip, "category", None) == "auto_language_level"
+
     def _apply_language_skip(
         self,
         *,
@@ -582,7 +597,10 @@ class InboxService:
                 job_data["description"] = fetched_desc
             requirements = extract_language_requirements(posting_blob)
             lang_gaps = self._language_gaps(requirements, profile_langs)
-            if lang_gaps:
+            if self._has_auto_language_skip(job):
+                tier = "skip"
+                status = job.status
+            elif lang_gaps:
                 status, reason, skipped, auto_skip_reason, tier = self._apply_language_skip(
                     gaps=lang_gaps,
                     status=status,
@@ -724,7 +742,12 @@ class InboxService:
 
         priority = [r for r in ranked if r["tier"] == "priority"]
         review = [r for r in ranked if r["tier"] == "review"]
-        top10 = (priority + review)[:10]
+        top10 = [
+            r
+            for r in (priority + review)
+            if r.get("status") != "skipped"
+            and not self._has_auto_language_skip(None, row=r)
+        ][:10]
         skipped_count = sum(1 for r in ranked if r.get("tier") == "skip")
 
         write_json(

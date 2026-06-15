@@ -121,6 +121,16 @@ export function normalizeKeyword(keyword?: string): string {
   return value
 }
 
+/** Match all whitespace-separated query tokens (URL-safe; avoids false negatives). */
+export function matchesSearchQuery(haystack: string, query: string): boolean {
+  const q = query.trim().toLowerCase()
+  if (!q) return true
+  const blob = haystack.toLowerCase()
+  const tokens = q.split(/\s+/).filter(Boolean)
+  if (tokens.length <= 1) return blob.includes(q)
+  return tokens.every((token) => blob.includes(token))
+}
+
 export function excerpt(text: string | null | undefined, max = 300): string | null {
   if (!text) return null
   const cleaned = text.replace(/\s+/g, " ").trim()

@@ -5,6 +5,7 @@ import {
   htmlFetch,
   isRecentHours,
   listingDetailSearch,
+  matchesSearchQuery,
   normalizeKeyword,
   parseJobPostingLd,
   stripHtml,
@@ -84,8 +85,8 @@ export function parseListingCards(html: string, keyword: string, limit: number):
 
     if (isNoiseOffer(title, null, description, true)) continue
 
-    const haystack = `${title} ${url} ${location ?? ""}`.toLowerCase()
-    if (query && !haystack.includes(query)) continue
+    const haystack = `${title} ${url} ${location ?? ""}`
+    if (query && !matchesSearchQuery(haystack, query)) continue
 
     const idMatch = url.match(/_(\d+)\.html/)
     results.push({
@@ -108,8 +109,8 @@ export function parseListingCards(html: string, keyword: string, limit: number):
     if (seen.has(link)) continue
     seen.add(link)
     const title = titleFromPracaUrl(link)
-    const haystack = `${title} ${link}`.toLowerCase()
-    if (query && !haystack.includes(query)) continue
+    const haystack = `${title} ${link}`
+    if (query && !matchesSearchQuery(haystack, query)) continue
     if (isNoiseOffer(title, null, title, true)) continue
     const idMatch = link.match(/_(\d+)\.html/)
     results.push({

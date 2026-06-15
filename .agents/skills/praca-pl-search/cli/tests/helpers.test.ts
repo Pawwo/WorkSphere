@@ -50,6 +50,16 @@ describe("parseListingCards", () => {
       expect(card.description?.toLowerCase() ?? "").not.toMatch(/cookie/)
     }
   })
+
+  test("matches multi-word query when URL separates title and location", () => {
+    const html = `
+      <a href="https://www.praca.pl/chief-operating-officer-szczecin_12345.html"
+         title="Chief Operating Officer, Szczecin">Chief Operating Officer</a>
+    `
+    const cards = parseListingCards(html, "Chief Operating Officer Szczecin", 5)
+    expect(cards.length).toBe(1)
+    expect(cards[0].title).toContain("Chief Operating Officer")
+  })
 })
 
 describe("praca-pl noise filter", () => {

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from app.services.job_fetcher import extract_linkedin_job_body
-from app.services.scrape.posting_extract.clean import normalize_whitespace, strip_boilerplate_lines
+from app.services.scrape.posting_extract.clean import normalize_whitespace, strip_boilerplate_lines, trim_leading_junk
 from app.services.scrape.posting_extract.linkedin import extract_linkedin_sections
 
 _MIN_LEN = 80
@@ -24,23 +24,23 @@ def extract_key_description(raw: str, *, portal: str = "", url: str = "") -> str
     # Section headers work across LinkedIn and PL job boards (Wymagania, Requirements, …).
     section = extract_linkedin_sections(text)
     if len(section) >= _MIN_LEN:
-        return section[:_MAX_LEN]
+        return trim_leading_junk(section)[:_MAX_LEN]
 
     if is_linkedin:
         body = extract_linkedin_job_body(text)
         section = extract_linkedin_sections(body)
         if len(section) >= _MIN_LEN:
-            return section[:_MAX_LEN]
+            return trim_leading_junk(section)[:_MAX_LEN]
         if len(body) >= _MIN_LEN:
             cleaned = strip_boilerplate_lines(body)
             if len(cleaned) >= _MIN_LEN:
-                return cleaned[:_MAX_LEN]
+                return trim_leading_junk(cleaned)[:_MAX_LEN]
 
     cleaned = strip_boilerplate_lines(text)
     if len(cleaned) >= _MIN_LEN:
-        return cleaned[:_MAX_LEN]
+        return trim_leading_junk(cleaned)[:_MAX_LEN]
 
-    return text[:_MAX_LEN]
+    return trim_leading_junk(text)[:_MAX_LEN]
 
 
 def description_for_storage(

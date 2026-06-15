@@ -5,10 +5,11 @@ Samodzielna aplikacja webowa do wyszukiwania ofert pracy w Polsce, triażu inbox
 ## Funkcje
 
 - **Scraping** — 8 polskich portali (Pracuj, Praca.pl, JustJoin, NoFluffJobs, TheProtocol, RocketJobs, LinkedIn PL, Indeed PL)
-- **Inbox & triage** — automatyczny fit, języki, widełki, kolejka apply
-- **Apply pipeline** — evaluate → draft CV → review → PDF (HTML + Playwright)
-- **Profil** — wizard setup, import CV, dokumenty, search queries
-- **Narzędzia** — expand kompetencji, upskill, tracker aplikacji
+- **Inbox & triage** — keyword/LLM fit, widełki, wymagania językowe, kolejka evaluate
+- **Apply pipeline** — evaluate → draft CV → review → PDF (HTML + Playwright/Chromium)
+- **Profil** — wizard setup, import CV, dokumenty, zapytania wyszukiwania
+- **Narzędzia** (`/tools`) — konfiguracja LLM (lokalny serwer / OpenRouter), expand kompetencji, upskill, reset danych
+- **Tracker** — status wysłanych aplikacji (SQLite)
 
 ## Wymagania
 
@@ -17,13 +18,10 @@ Samodzielna aplikacja webowa do wyszukiwania ofert pracy w Polsce, triażu inbox
 | **Linux** | x86_64 lub aarch64/arm64 |
 | **Python** | 3.10+ |
 | **[Bun](https://bun.sh)** | scrapery portalowe (instalator doinstaluje) |
-| **LLM** | endpoint **OpenAI-compatible** (`/v1/chat/completions`) |
-| **SearXNG** | wyszukiwanie web (opcjonalnie Docker — instalator uruchamia) |
-| **Docker** | tylko dla SearXNG (opcjonalnie, ręcznie) |
+| **LLM** | endpoint **OpenAI-compatible** (`/v1/chat/completions`) — llama-server, Ollama, vLLM, OpenRouter itd. |
+| **Docker** | dla SearXNG — instalator próbuje doinstalować (apt) i uruchomić kontener |
 
-### LLM
-
-Aplikacja wymaga **dowolnego API zgodnego z OpenAI** (`/v1/chat/completions`). Dobrze sprawdza się polski model [Bielik](https://huggingface.co/speakleash) przez **llama.cpp** (`llama-server`), ale działa też Ollama, vLLM, LocalAI, OpenRouter itp.
+Bez LLM i SearXNG aplikacja startuje w trybie **degraded** (scraping keyword-fit i UI działają; expand/upskill i pełny LLM-fit wymagają usług).
 
 ## Szybka instalacja (Linux)
 
@@ -38,9 +36,9 @@ Skrypt `install.sh`:
 
 - tworzy venv i instaluje zależności Python,
 - instaluje Bun i scrapery (`.agents/skills/`),
-- instaluje Playwright/Chromium do generowania PDF z HTML (`CV_RENDERER=html`),
-- tworzy `.env` z lokalnymi adresami,
-- uruchamia **SearXNG** w Dockerze, jeśli Docker jest dostępny.
+- instaluje Playwright/Chromium do generowania PDF z HTML,
+- tworzy lub naprawia `.env` (adresy `127.0.0.1`, `CV_RENDERER=html`),
+- **instaluje Docker (apt, jeśli brak) i uruchamia SearXNG** (`deploy/searxng/setup.sh`).
 
 ### Uruchomienie
 
@@ -51,53 +49,53 @@ uvicorn app.main:app --host 0.0.0.0 --port 8080
 
 Otwórz: **http://localhost:8080/dashboard**
 
-Szczegóły konfiguracji LLM, SearXNG i pierwsze kroki: **[SETUP.md](SETUP.md)**
+Szczegóły: **[SETUP.md](SETUP.md)**
 
 ## Konfiguracja
 
-Skopiuj i edytuj środowisko:
-
 ```bash
-cp .env.example .env
+cp .env.example .env   # opcjonalnie — install.sh tworzy .env automatycznie
 ```
 
 | Zmienna | Opis |
 |---------|------|
-| `LLM_BASE_URL` | np. `http://127.0.0.1:8006/v1` (llama-server) lub URL OpenRouter |
+| `LLM_BASE_URL` | np. `http://127.0.0.1:8006/v1` (llama-server) lub `https://openrouter.ai/api/v1` |
 | `LLM_MODEL` | nazwa modelu na serwerze |
-| `SEARXNG_BASE_URL` | np. `http://127.0.0.1:8888` |
-| `CV_RENDERER` | `html` (domyślne, Playwright) lub `latex` (legacy) |
+| `SEARXNG_BASE_URL` | `http://127.0.0.1:8888` (po `install.sh`) |
+| `CV_RENDERER` | `html` — PDF przez Playwright (domyślne) |
 | `DATA_DIR` | katalog danych (`./data`) |
 
-Większość ustawień scrape/ATS jest w **`config.yaml`**.
+Presety LLM w UI: **Narzędzia → LLM** (`local`, `OpenRouter`). Zapis trafia do `config.yaml` (nadpisuje odpowiadające pola z `.env`).
 
-### SearXNG (ręcznie)
-
-```bash
-cd deploy/searxng
-docker compose up -d
-curl -s "http://127.0.0.1:8888/search?q=test&format=json" | head
-```
+Większość ustawień scrape i pipeline: **`config.yaml`**.
 
 ### Przykład: lokalny LLM (llama-server)
 
 ```bash
-llama-server -m /path/to/bielik.gguf -c 4096 --host 0.0.0.0 --port 8006
+llama-server -m /path/to/model.gguf -c 4096 --host 0.0.0.0 --port 8006
 ```
 
 W `.env`: `LLM_BASE_URL=http://127.0.0.1:8006/v1`
+
+### SearXNG — jeśli instalator pominął usługę
+
+```bash
+bash deploy/searxng/setup.sh
+curl -s "http://127.0.0.1:8888/search?q=test&format=json" | head
+```
 
 ## Strony
 
 | URL | Opis |
 |-----|------|
-| `/dashboard` | Status systemu, profil, ostatnie scrape |
+| `/dashboard` | Status LLM, SearXNG, scrapers |
 | `/setup` | Wizard profilu |
 | `/inbox` | Triage ofert |
-| `/scrape` | Wyszukiwanie z postępem SSE |
+| `/scrape` | Wyszukiwanie (SSE postęp) |
 | `/apply` | Pipeline aplikacji |
-| `/tracker` | Śledzenie wysłanych aplikacji |
-| `/tools` | Expand, Upskill, Reset |
+| `/applications/{id}` | Szczegóły aplikacji, checklista, PDF |
+| `/tracker` | Wysłane aplikacje |
+| `/tools` | LLM, expand, upskill, reset |
 
 ## API (skrót)
 
@@ -107,8 +105,9 @@ W `.env`: `LLM_BASE_URL=http://127.0.0.1:8006/v1`
 | `POST /api/scrape/async` | Scrape w tle |
 | `POST /api/apply` | Evaluate / pełny pipeline |
 | `GET /api/inbox` | Lista inbox |
+| `GET /api/tools/llm` | Presety i aktualny endpoint LLM |
 
-Pełna lista endpointów i przykłady `curl`: [SETUP.md](SETUP.md).
+Pełna lista: [SETUP.md](SETUP.md).
 
 ## Struktura repozytorium
 
@@ -116,16 +115,16 @@ Pełna lista endpointów i przykłady `curl`: [SETUP.md](SETUP.md).
 WorkSphere/
 ├── app/                 # FastAPI + UI
 ├── .agents/skills/      # Bun workspace — 8 portali
-├── data/                # profil, oferty, SQLite (gitignore na dane osobiste)
+├── data/                # profil, oferty, SQLite (gitignore)
 ├── deploy/searxng/      # Docker Compose SearXNG
-├── config.yaml          # scrape, LLM, ATS
-├── install.sh           # instalator Linux
+├── config.yaml          # scrape, LLM, pipeline
+├── install.sh           # instalator Linux (+ SearXNG)
 └── install-skills.sh    # tylko scrapery
 ```
 
 ## Wydajność
 
-Czasy scrape/apply zależą od wybranego LLM i sprzętu. Przy słabszym lokalnym modelu warto w `config.yaml` ustawić: `llm.concurrency: 1`, `scrapers.llm_fit_limit: 40`, `llm.context_size: 4096`.
+Czasy scrape/apply zależą od LLM i sprzętu. Przy słabszym lokalnym modelu w `config.yaml`: `llm.concurrency: 1`, `scrapers.llm_fit_limit: 40`, `llm.context_size: 4096`.
 
 ## Testy
 
@@ -133,8 +132,6 @@ Czasy scrape/apply zależą od wybranego LLM i sprzętu. Przy słabszym lokalnym
 source .venv/bin/activate
 pytest -m "not integration"
 ```
-
-Testy `integration` wymagają działającego LLM i SearXNG (opcjonalnie).
 
 ## Licencja
 

@@ -236,3 +236,34 @@ def test_run_triage_keeps_c1_job_when_profile_has_c1(tmp_path: Path):
     assert fluent["status"] == "new"
     assert fluent["tier"] != "skip"
     assert result["skipped"] == 0
+
+
+def test_run_triage_retriage_preserves_language_skip_tier(tmp_path: Path):
+    from app.services.inbox.skip_reason import build_auto_language_skip_reason
+
+    settings = _settings(tmp_path)
+    seen_path = settings.seen_jobs_path
+    seen = json.loads(seen_path.read_text())
+    url = "https://example.com/fluent"
+    seen["seen"][url]["status"] = "skipped"
+    seen["seen"][url]["skip_reason"] = build_auto_language_skip_reason(
+        language="english",
+        level="C1",
+        triage_score=30,
+        triage_reason="strong:\\bcoo\\b, english_c1",
+        quick_fit="high",
+        matched_token="english_c1",
+    ).model_dump()
+    seen_path.write_text(json.dumps(seen), encoding="utf-8")
+
+    svc = InboxService(settings)
+    svc.run_triage()
+
+    triage = json.loads((tmp_path / "job_scraper" / "triage_result.json").read_text())
+    row = next(r for r in triage["ranked"] if r["url"] == url)
+    assert row["tier"] == "skip"
+    assert row["status"] == "skipped"
+    assert row["skip_reason"]["category"] == "auto_language_level"
+
+    queue = json.loads((tmp_path / "job_scraper" / "evaluate_queue.json").read_text())
+    assert url not in queue.get("urls", [])

@@ -53,3 +53,16 @@ def test_description_for_storage_prefers_extracted():
 def test_extract_empty_returns_empty():
     assert extract_key_description("") == ""
     assert description_for_storage("") == ""
+
+
+def test_description_for_storage_trims_leading_comma():
+    raw = (
+        "Wymagania\n"
+        ", Szukamy osoby z doświadczeniem w zarządzaniu zespołem inżynierów. "
+        "Minimum 5 lat w IT.\n"
+        "Oferujemy\n"
+        "Benefity"
+    )
+    stored = description_for_storage(raw, portal="pracuj", url="https://www.pracuj.pl/praca/x")
+    assert stored.startswith("Szukamy")
+    assert not stored.startswith(",")

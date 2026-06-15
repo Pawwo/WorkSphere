@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import json
 import logging
 from typing import Awaitable, Callable, List, Optional
@@ -272,7 +273,7 @@ class ScrapeService:
                 else None
             )
             entry = SeenJobEntry(
-                title=job.title,
+                title=html.unescape(job.title or ""),
                 company=job.company or "",
                 url=job.url,
                 description=stored_desc or None,
@@ -296,7 +297,7 @@ class ScrapeService:
             all_new.append(
                 ScrapeResultItem(
                     fit=fit,  # type: ignore[arg-type]
-                    title=job.title,
+                    title=html.unescape(job.title or ""),
                     company=job.company,
                     location=job.location,
                     deadline=job.deadline,
