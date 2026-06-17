@@ -611,12 +611,16 @@ class InboxService:
                     skipped=skipped,
                 )
             else:
+                from app.services.inbox.fit_signals import extract_job_signals
+
+                job_signals = extract_job_signals(title=title, description=posting_blob)
                 tier = assign_tier(
                     quick_fit=quick_fit,
                     triage_score=triage_score,
                     salary_meets_threshold=job_data.get("salary_meets_threshold"),
                     pi_score=job.pi_score,
                     pi_verdict=job.pi_verdict,
+                    job_signals=job_signals,
                 )
                 if tier == "skip" and status == "new":
                     status = "skipped"

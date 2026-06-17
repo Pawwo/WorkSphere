@@ -1,8 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
+from app.config import get_settings
+from app.storage.db import Database
+from app.storage.job_repository import JobRepository, job_url_lookup_variants
+from app.services.inbox_service import InboxService
 from app.services.llm_settings_service import (
     apply_llm_settings,
     current_llm_config,
@@ -59,6 +63,40 @@ async def test_llm_settings():
     health = await test_llm_connection()
     cfg = current_llm_config()
     return {"config": cfg, "health": health, "message": message}
+
+
+@router.get("/fit/compare")
+async def compare_fit(url: str = Query(..., min_length=8)):
+    """Compare quick_fit (seen_jobs), triage row, and evaluate_fit (applications DB) for a URL."""
+    settings = get_settings()
+    repo = JobRepository(settings.seen_jobs_path)
+    seen = repo.all()
+
+    resolved = None
+    for u in job_url_lookup_variants(url):
+        found = repo.get_by_url(u)
+        if found:
+            resolved = found
+            break
+    key, job = resolved if resolved else (url, None)
+
+    inbox = InboxService(settings=settings)
+    triage = inbox._load_triage_data() or {}
+    ranked = triage.get("ranked") or []
+    triage_row = inbox._find_ranked_item(ranked, url) if ranked else None
+
+    app_row = await Database(settings.db_path).get_application_by_url(url)
+    # Try canonical url from job entry too.
+    if app_row is None and job and job.url:
+        app_row = await Database(settings.db_path).get_application_by_url(job.url)
+
+    return {
+        "url": url,
+        "resolved_key": key,
+        "seen_job": job.model_dump() if job else None,
+        "triage_row": triage_row,
+        "application": app_row,
+    }
 
 
 async def _with_health(cfg: dict) -> dict:

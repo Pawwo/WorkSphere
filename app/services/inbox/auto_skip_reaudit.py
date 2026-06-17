@@ -124,6 +124,8 @@ def evaluate_auto_skipped_job(
         reason = f"{reason}, {sal_reason}" if reason != "generic" else sal_reason
 
     blob = _posting_blob(job, description)
+    from app.services.inbox.fit_signals import extract_job_signals
+    job_signals = extract_job_signals(title=job.title, description=blob)
     requirements = extract_language_requirements(blob)
     lang_gaps = _language_gaps(requirements, profile_langs)
     if lang_gaps:
@@ -135,6 +137,7 @@ def evaluate_auto_skipped_job(
             salary_meets_threshold=assessment.meets_threshold,
             pi_score=job.pi_score,
             pi_verdict=job.pi_verdict,
+            job_signals=job_signals,
         )
 
     note = "fetch_ok" if fetch_ok else "reextract_only" if description else "no_description"

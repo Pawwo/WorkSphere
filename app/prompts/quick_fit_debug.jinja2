@@ -1,0 +1,32 @@
+Oceń dopasowanie oferty do profilu kandydata.
+
+Zwróć WYŁĄCZNIE poprawny JSON (bez markdown), np.:
+{
+  "fit": "medium",
+  "confidence": 0.72,
+  "matches": ["delivery leadership", "SDLC", "AI adoption"],
+  "gaps": ["Fintech domain experience"],
+  "notes": "1–2 zdania po polsku, dlaczego taki fit."
+}
+
+Zasady:
+- `fit` musi być dokładnie: "high", "medium" lub "low".
+- `confidence` 0.0–1.0 (jeśli niepewne, ustaw nisko).
+- `matches` i `gaps` to krótkie hasła (max 8 pozycji każda).
+- `notes` zawsze po polsku.
+- Nie zaniżaj za lokalizację, jeśli jest możliwy remote/hybrid lub brak twardych ograniczeń.
+- Jeśli rola jest semantycznie bliska (np. Delivery Lead / Technical Delivery Manager) ale nie pada wprost w profilu, to nadal może być "high" gdy cechy roli pasują.
+
+Sygnały (wyciąg heurystyczny):
+- Profil flags: {{ profile_signals }}
+- Oferta flags: {{ job_signals }}
+
+Profil (skrót):
+{{ profile_excerpt }}
+
+Oferta:
+Tytuł: {{ job.title }}
+Firma: {{ job.company }}
+Lokalizacja: {{ job.location }}
+Opis: {{ job.description }}
+

@@ -260,7 +260,7 @@ class ScrapeService:
         )
 
         all_new: List[ScrapeResultItem] = []
-        for (job, portal), (fit, assessment) in zip(pending_jobs, fit_results):
+        for (job, portal), (fit, assessment, dbg) in zip(pending_jobs, fit_results):
             key = seen_key(job.url, job.company or "", job.title)
             portal_key = normalize_portal(portal)
             stored_desc = (
@@ -279,6 +279,9 @@ class ScrapeService:
                 description=stored_desc or None,
                 first_seen=today_iso(),
                 fit=fit,  # type: ignore[arg-type]
+                quick_fit_reason=(dbg or {}).get("notes") if isinstance(dbg, dict) else None,
+                quick_fit_signals=(dbg or {}).get("job_signals") if isinstance(dbg, dict) else None,
+                quick_fit_prompt_version=getattr(self.settings, "quick_fit_prompt_version", None),
                 status="new",
                 location=job.location,
                 deadline=job.deadline,

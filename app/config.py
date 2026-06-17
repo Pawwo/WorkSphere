@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     )
     scrape_llm_fit_limit: int = Field(default=40, alias="SCRAPE_LLM_FIT_LIMIT")
     scrape_highlights_max_per_run: int = Field(default=10, alias="SCRAPE_HIGHLIGHTS_MAX_PER_RUN")
+    quick_fit_debug_enabled: bool = Field(default=False, alias="QUICK_FIT_DEBUG_ENABLED")
+    quick_fit_prompt_version: str = Field(default="v2", alias="QUICK_FIT_PROMPT_VERSION")
 
     searxng_base_url: str = Field(default="http://127.0.0.1:8888", alias="SEARXNG_BASE_URL")
     searxng_language: str = Field(default="pl", alias="SEARXNG_LANGUAGE")
@@ -202,6 +204,10 @@ def _merge_yaml_into_settings(settings: Settings) -> Settings:
         updates["scrapers_batch_fit_mode"] = scrapers["batch_fit_mode"]
     if scrapers.get("llm_fit_limit") is not None:
         updates["scrape_llm_fit_limit"] = int(scrapers["llm_fit_limit"])
+    if scrapers.get("quick_fit_debug_enabled") is not None:
+        updates["quick_fit_debug_enabled"] = bool(scrapers["quick_fit_debug_enabled"])
+    if scrapers.get("quick_fit_prompt_version"):
+        updates["quick_fit_prompt_version"] = str(scrapers["quick_fit_prompt_version"])
     if scrapers.get("highlights_max_per_run") is not None:
         updates["scrape_highlights_max_per_run"] = int(scrapers["highlights_max_per_run"])
     if scrapers.get("portal_strict_freshness"):

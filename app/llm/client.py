@@ -338,6 +338,8 @@ class BielikClient:
         prompt = render_prompt(
             "quick_fit.jinja2",
             profile_excerpt=profile_excerpt[:QUICK_FIT_PROFILE_MAX],
+            profile_signals=job.get("profile_signals") or {},
+            job_signals=job.get("job_signals") or {},
             job={
                 "title": job.get("title"),
                 "company": job.get("company"),
@@ -368,3 +370,78 @@ class BielikClient:
         except Exception as exc:
             logger.warning("quick_fit LLM failed: %s", exc)
             return "medium"
+
+    async def quick_fit_debug(self, profile_excerpt: str, job: dict) -> dict:
+        """Return a JSON debug payload: fit + brief explanation.
+
+        This is used to diagnose false negatives and to surface a compact reason in UI/storage.
+        """
+        prompt = render_prompt(
+            "quick_fit_debug.jinja2",
+            profile_excerpt=profile_excerpt[:QUICK_FIT_PROFILE_MAX],
+            profile_signals=job.get("profile_signals") or {},
+            job_signals=job.get("job_signals") or {},
+            job={
+                "title": job.get("title"),
+                "company": job.get("company"),
+                "location": job.get("location"),
+                "description": (job.get("description") or "")[:QUICK_FIT_DESCRIPTION_MAX],
+            },
+        )
+        try:
+            result = await self.chat_complete(
+                [
+                    {
+                        "role": "system",
+                        "content": (
+                            "Jesteś asystentem rekrutacyjnym. "
+                            "Zwracasz wyłącznie JSON zgodny ze schematem w prompt."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=384,
+                temperature=0.0,
+                _skip_esc_guard=False,
+            )
+        except Exception as exc:
+            logger.warning("quick_fit_debug LLM failed: %s", exc)
+            return {"fit": "medium", "confidence": 0.0, "matches": [], "gaps": [], "notes": "LLM error"}
+
+        text = (result or "").strip()
+        parsed = None
+        try:
+            import json
+
+            parsed = json.loads(text)
+        except Exception:
+            try:
+                from json_repair import repair_json
+                import json
+
+                parsed = json.loads(repair_json(text))
+            except Exception:
+                parsed = None
+
+        if not isinstance(parsed, dict):
+            return {"fit": "medium", "confidence": 0.0, "matches": [], "gaps": [], "notes": "parse_error"}
+
+        fit = str(parsed.get("fit") or "").strip().lower()
+        if fit not in ("high", "medium", "low"):
+            fit = "medium"
+        confidence = parsed.get("confidence")
+        try:
+            confidence = float(confidence)
+        except Exception:
+            confidence = 0.0
+        confidence = max(0.0, min(1.0, confidence))
+        matches = parsed.get("matches") if isinstance(parsed.get("matches"), list) else []
+        gaps = parsed.get("gaps") if isinstance(parsed.get("gaps"), list) else []
+        notes = str(parsed.get("notes") or "").strip()
+        return {
+            "fit": fit,
+            "confidence": confidence,
+            "matches": matches[:8],
+            "gaps": gaps[:8],
+            "notes": notes[:400],
+        }

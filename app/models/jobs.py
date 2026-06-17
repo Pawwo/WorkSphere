@@ -186,6 +186,9 @@ class SeenJobEntry(BaseModel):
     description: Optional[str] = None
     first_seen: str
     fit: Literal["high", "medium", "low"] = "medium"
+    quick_fit_reason: Optional[str] = None
+    quick_fit_signals: Optional[dict] = None
+    quick_fit_prompt_version: Optional[str] = None
     status: Literal["new", "skipped", "evaluated"] = "new"
     location: Optional[str] = None
     deadline: Optional[str] = None
