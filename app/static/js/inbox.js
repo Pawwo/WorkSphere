@@ -4,6 +4,8 @@
   let jobs = [];
   let focusedIdx = 0;
   let pendingSkip = null;
+  let sortCol = "first_seen";
+  let sortDir = "desc";
 
   const qs = new URLSearchParams(location.search);
   if (qs.get("view") === "table") currentView = "table";
@@ -130,6 +132,82 @@
     return ` · ${j.salary_b2b_monthly.toLocaleString("pl-PL")} PLN B2B/mies.${warn}`;
   }
 
+  function parseIsoDay(iso) {
+    if (!iso || typeof iso !== "string") return null;
+    const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return null;
+    const y = Number(m[1]);
+    const mo = Number(m[2]);
+    const d = Number(m[3]);
+    if (!y || !mo || !d) return null;
+    return { y, mo, d, key: y * 10000 + mo * 100 + d };
+  }
+
+  function formatFirstSeen(iso) {
+    const day = parseIsoDay(iso);
+    if (!day) return "—";
+    return `${String(day.d).padStart(2, "0")}.${String(day.mo).padStart(2, "0")}.${day.y}`;
+  }
+
+  function reasonSortKey(j) {
+    const sr = j.skip_reason;
+    if (sr) {
+      const cat = sr.category || "";
+      const tr = sr.triage_reason || "";
+      return `${cat} ${tr}`.trim().toLowerCase();
+    }
+    return String(j.triage_reason || "").trim().toLowerCase();
+  }
+
+  function compareNullableNumber(a, b) {
+    const na = a == null ? null : Number(a);
+    const nb = b == null ? null : Number(b);
+    const aMissing = na == null || Number.isNaN(na);
+    const bMissing = nb == null || Number.isNaN(nb);
+    if (aMissing && bMissing) return 0;
+    if (aMissing) return 1;
+    if (bMissing) return -1;
+    return na - nb;
+  }
+
+  function fitRank(f) {
+    if (f === "high") return 3;
+    if (f === "medium") return 2;
+    if (f === "low") return 1;
+    return 0;
+  }
+
+  function compareJobs(a, b, col) {
+    if (col === "row") return a.__row - b.__row;
+    if (col === "tier") return String(a.tier || "").localeCompare(String(b.tier || ""), "pl");
+    if (col === "triage_score") return compareNullableNumber(a.triage_score, b.triage_score);
+    if (col === "quick_fit") return fitRank(a.quick_fit) - fitRank(b.quick_fit);
+    if (col === "salary_b2b_monthly") return compareNullableNumber(a.salary_b2b_monthly, b.salary_b2b_monthly);
+    if (col === "first_seen") {
+      const ka = parseIsoDay(a.first_seen)?.key ?? 0;
+      const kb = parseIsoDay(b.first_seen)?.key ?? 0;
+      return ka - kb;
+    }
+    if (col === "title") return String(a.title || "").localeCompare(String(b.title || ""), "pl");
+    if (col === "company") return String(a.company || "").localeCompare(String(b.company || ""), "pl");
+    if (col === "location") return String(a.location || "").localeCompare(String(b.location || ""), "pl");
+    if (col === "status") return String(a.status || "").localeCompare(String(b.status || ""), "pl");
+    if (col === "reason") return reasonSortKey(a).localeCompare(reasonSortKey(b), "pl");
+    return 0;
+  }
+
+  function applyCurrentSort() {
+    if (!Array.isArray(jobs) || !jobs.length) return;
+    const decorated = jobs.map((j, i) => ({ ...j, __row: i }));
+    decorated.sort((a, b) => {
+      const dir = sortDir === "desc" ? -1 : 1;
+      const cmp = compareJobs(a, b, sortCol);
+      if (cmp !== 0) return cmp * dir;
+      return (a.__row - b.__row) * dir;
+    });
+    jobs = decorated.map(({ __row, ...rest }) => rest);
+  }
+
   function emptyState() {
     return `<div class="o_empty_state">
       <h2>Brak ofert</h2>
@@ -194,12 +272,13 @@
     }
     const rows = jobs
       .map(
-        (j, i) => `<tr>
+        (j, i) => `<tr data-idx="${i}">
       <td>${i + 1}</td>
       <td>${tierBadge(j.tier)}</td>
       <td>${j.triage_score != null ? j.triage_score : "—"}</td>
       <td>${fitBadge(j.quick_fit)} ${piBadge(j)}</td>
       <td>${j.salary_b2b_monthly ? j.salary_b2b_monthly.toLocaleString("pl-PL") : "—"}</td>
+      <td>${formatFirstSeen(j.first_seen)}</td>
       <td>${hasExternalUrl(j) ? `<a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a>` : esc(j.title)}</td>
       <td>${esc(j.company)}</td>
       <td>${esc(j.location || "—")}</td>
@@ -212,10 +291,53 @@
     </tr>`
       )
       .join("");
+    const arrow = sortDir === "desc" ? "▼" : "▲";
+    const th = (label, col) => {
+      const active = sortCol === col;
+      const cls = `o_sortable${active ? " o_sort_active" : ""}`;
+      const suffix = active ? ` <span class="o_sort_arrow" aria-hidden="true">${arrow}</span>` : "";
+      return `<th class="${cls}" data-sort="${esc(col)}" role="button" tabindex="0">${esc(label)}${suffix}</th>`;
+    };
     wrap.innerHTML = `<table class="jobs"><thead><tr>
-      <th>#</th><th>Tier</th><th>Score</th><th>Fit</th><th>B2B/mies.</th>
-      <th>Tytuł</th><th>Firma</th><th>Lokalizacja</th><th>Status</th><th>Powód</th><th>Akcje</th>
+      ${th("#", "row")}
+      ${th("Tier", "tier")}
+      ${th("Score", "triage_score")}
+      ${th("Fit", "quick_fit")}
+      ${th("B2B/mies.", "salary_b2b_monthly")}
+      ${th("Data", "first_seen")}
+      ${th("Tytuł", "title")}
+      ${th("Firma", "company")}
+      ${th("Lokalizacja", "location")}
+      ${th("Status", "status")}
+      ${th("Powód", "reason")}
+      <th>Akcje</th>
     </tr></thead><tbody>${rows}</tbody></table>`;
+
+    const thead = wrap.querySelector("thead");
+    if (thead) {
+      thead.onclick = (e) => {
+        const target = e.target && e.target.nodeType === 1 ? e.target : e.target?.parentElement;
+        const thEl = target ? target.closest("th[data-sort]") : null;
+        if (!thEl) return;
+        const col = thEl.dataset.sort;
+        if (!col) return;
+        if (sortCol === col) sortDir = sortDir === "asc" ? "desc" : "asc";
+        else {
+          sortCol = col;
+          sortDir = "asc";
+        }
+        applyCurrentSort();
+        renderView();
+      };
+      thead.onkeydown = (e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        const target = e.target && e.target.nodeType === 1 ? e.target : e.target?.parentElement;
+        const thEl = target ? target.closest("th[data-sort]") : null;
+        if (!thEl) return;
+        e.preventDefault();
+        thEl.click();
+      };
+    }
   }
 
   function renderView() {
@@ -343,6 +465,7 @@
     const d = await fetch(url).then((r) => r.json());
     jobs = d.jobs || [];
     if (tierFilter) jobs = jobs.filter((j) => j.tier === tierFilter);
+    applyCurrentSort();
     focusedIdx = 0;
     const c = d.counts || {};
     const untriaged = c.untriaged || 0;
@@ -432,7 +555,7 @@
     const btn = e.target.closest("button[data-skip]");
     if (!btn) return;
     const row = btn.closest("tr");
-    const rowIdx = row ? Number(row.cells[0]?.textContent) - 1 : -1;
+    const rowIdx = row ? Number(row.dataset.idx) : -1;
     const job = rowIdx >= 0 ? jobs[rowIdx] : null;
     openSkipWizard(job ? jobRef(job) : btn.dataset.skip, job?.title || btn.dataset.title);
   };

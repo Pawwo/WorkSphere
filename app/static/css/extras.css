@@ -209,6 +209,25 @@
   padding: 0 var(--space-md) var(--space-lg);
 }
 
+.jobs th.o_sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.jobs th.o_sortable:hover {
+  background: rgba(113, 75, 103, 0.06);
+}
+
+.jobs th.o_sort_active {
+  background: rgba(113, 75, 103, 0.10);
+}
+
+.jobs th .o_sort_arrow {
+  font-size: 11px;
+  margin-left: 6px;
+  color: var(--odoo-muted);
+}
+
 .o_quick_edit {
   display: grid;
   grid-template-columns: 1fr 1fr;
