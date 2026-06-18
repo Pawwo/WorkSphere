@@ -329,21 +329,37 @@ def _enrich_linkedin_raw_text(
     return raw
 
 
+def _role_title_part(role: str) -> str:
+    """Title without LinkedIn-style location suffix (``… in City, Region, Country``)."""
+    if not role:
+        return role
+    m = re.match(r"^(.*?)\s+in\s+[^,]+(?:,.+)?$", role.strip(), re.I)
+    return m.group(1).strip() if m else role.strip()
+
+
 def _role_implies_english(role: str) -> bool:
     if not role or role in ("Position",):
         return False
-    if re.search(r"[ąćęłńóśźż]", role, re.I):
+    title = _role_title_part(role)
+    if re.search(r"[ąćęłńóśźż]", title, re.I):
         return False
-    words = re.findall(r"[a-z]{3,}", role.lower())
+    pl_title = ("kierownik", "specjalista", "młodszy", "starszy", "dyrektor", "analityk")
+    lower = title.lower()
+    if any(marker in lower for marker in pl_title):
+        return False
+    words = re.findall(r"[a-z]{3,}", lower)
     stop = {"and", "the", "for", "with", "mfd", "mfx", "nb", "remote"}
     content = [w for w in words if w not in stop]
     return len(content) >= 2
 
 
 def _resolve_job_language(role: str, raw_text: str) -> str:
+    body = (raw_text or "").strip()
+    if len(body) >= 80:
+        return _detect_language(body)
     if _role_implies_english(role):
         return "en"
-    return _detect_language(raw_text)
+    return _detect_language(body) if body else "pl"
 
 
 def _meta_content(html_text: str, prop: str) -> Optional[str]:
@@ -592,9 +608,24 @@ async def _llm_parse_job(text: str) -> tuple[Optional[str], Optional[str], Optio
 def _detect_language(text: str) -> str:
     pl_markers = ["wymagania", "obowiązk", "stanowisko", "doświadczenie", "mile widziane", "oferujemy"]
     en_markers = ["requirements", "responsibilities", "experience", "about the role", "we offer"]
-    pl_score = sum(1 for w in pl_markers if w in text.lower())
-    en_score = sum(1 for w in en_markers if w in text.lower())
-    return "pl" if pl_score >= en_score else "en"
+    en_chrome = [
+        "seniority level",
+        "employment type",
+        "job function",
+        "industries",
+        "full-time",
+        "part-time",
+        "mid-senior level",
+    ]
+    lower = text.lower()
+    pl_score = sum(1 for w in pl_markers if w in lower)
+    en_score = sum(1 for w in en_markers if w in lower)
+    en_score += sum(1 for w in en_chrome if w in lower)
+    if pl_score > en_score:
+        return "pl"
+    if en_score > pl_score:
+        return "en"
+    return "pl"
 
 
 def _manual_seen_posting(settings: Settings, ref: str) -> tuple[str, str, tuple[Optional[str], Optional[str], Optional[str]]]:
@@ -641,7 +672,16 @@ async def fetch_job_posting(*, url: Optional[str] = None, text: Optional[str] = 
                     html_text = response.text
                     content_type = response.headers.get("content-type", "")
                     if "html" in content_type:
-                        raw = _strip_html(html_text)
+                        if "pracuj" in url.lower():
+                            from app.services.scrape.pracuj_sections import extract_from_html
+
+                            pracuj_text = extract_from_html(html_text)
+                            if len(pracuj_text) >= 80:
+                                raw = pracuj_text
+                            else:
+                                raw = _strip_html(html_text)
+                        else:
+                            raw = _strip_html(html_text)
                         if "linkedin" in url.lower():
                             raw = extract_linkedin_job_body(raw)
                             raw = _enrich_linkedin_raw_text(
@@ -712,10 +752,17 @@ async def fetch_job_posting(*, url: Optional[str] = None, text: Optional[str] = 
             portal = "nofluffjobs"
 
     from app.services.scrape.posting_extract import description_for_storage
+    from app.services.scrape.pracuj_sections import (
+        is_structured_pracuj_description,
+        pracuj_description_for_storage,
+    )
 
-    stored = description_for_storage(raw, portal=portal, url=url or "")
-    if len(stored) >= 80:
-        raw = stored
+    if portal == "pracuj" and is_structured_pracuj_description(raw):
+        raw = pracuj_description_for_storage(raw, portal=portal, url=url or "")
+    else:
+        stored = description_for_storage(raw, portal=portal, url=url or "")
+        if len(stored) >= 80:
+            raw = stored
 
     language = _resolve_job_language(role, raw)
 
